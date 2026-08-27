@@ -103,14 +103,12 @@ h4 {
 }
 
 .logo-image {
-    width: 52px;
-    height: 52px;
+    width: auto;
+    height: 72px;
 
     object-fit: contain;
 
     border-radius: 4px;
-
-    background: white;
 }
 
 .logo-text strong,
@@ -545,6 +543,26 @@ h4 {
 
 
 /* =========================================================
+   EVANGELISMO
+========================================================= */
+
+.evangelism-layout {
+    align-items: center;
+}
+
+.evangelism-image {
+    min-height: 390px;
+}
+
+.evangelism-image img {
+    width: 100%;
+    height: 390px;
+
+    object-fit: cover;
+}
+
+
+/* =========================================================
    AGENDA
 ========================================================= */
 
@@ -741,48 +759,59 @@ h4 {
 }
 
 .person-card {
-    padding-bottom: 24px;
+    overflow: hidden;
 
     background: white;
 
     border: 1px solid var(--borda);
+
+    box-shadow:
+        0 4px 15px rgba(28,51,41,0.04);
 }
 
 .person-photo {
-    height: 270px;
+    height: 324px;
 
-    display: grid;
-
-    place-items: center;
+    overflow: hidden;
 
     background: var(--offwhite-escuro);
-
-    color: #7c857e;
-
-    font-size: 11px;
-
-    letter-spacing: 2px;
-
-    text-transform: uppercase;
 }
 
-.person-card h3,
-.person-card p {
-    margin-left: 24px;
+.person-photo img {
+    width: 100%;
+    height: 100%;
 
-    margin-right: 24px;
+    object-fit: cover;
+
+    object-position: center top;
+}
+
+.person-info {
+    padding: 18px 24px 22px;
+
+    background: white;
 }
 
 .person-card h3 {
-    margin-top: 20px;
+    margin: 0 0 3px;
 
     color: var(--verde-escuro);
 
     font-size: 22px;
+
+    line-height: 1.25;
 }
 
 .person-card p {
-    color: var(--cinza);
+    margin: 0;
+
+    color: var(--verde);
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 0.5px;
 }
 
 
@@ -826,19 +855,24 @@ h4 {
 .contact-layout {
     display: grid;
 
-    grid-template-columns: 0.8fr 1.2fr;
+    grid-template-columns: 0.85fr 1.15fr;
 
-    gap: 45px;
+    gap: 40px;
 
-    align-items: stretch;
+    align-items: start;
 }
+
+
+/* =========================================================
+   COLUNA DE INFORMAÇÕES
+========================================================= */
 
 .contact-information {
     display: flex;
 
     flex-direction: column;
 
-    gap: 25px;
+    gap: 18px;
 }
 
 .contact-item {
@@ -877,8 +911,74 @@ h4 {
     color: var(--cinza);
 }
 
+
+/* =========================================================
+   FOTO DA FACHADA
+========================================================= */
+
+.church-photo {
+    width: 100%;
+
+    height: 500px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: white;
+
+    border: 1px solid var(--borda);
+}
+
+.church-photo img {
+    width: 100%;
+
+    height: calc(100% - 45px);
+
+    min-height: 0;
+
+    object-fit: cover;
+
+    object-position: center;
+
+    flex: 1;
+}
+
+.church-photo-caption {
+    width: 100%;
+
+    height: 45px;
+
+    min-height: 45px;
+
+    display: flex;
+
+    align-items: center;
+
+    padding: 0 15px;
+
+    background: var(--verde-escuro);
+
+    color: white;
+
+    font-size: 12px;
+
+    letter-spacing: 0.5px;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   GOOGLE MAPS
+========================================================= */
+
 .map-wrapper {
-    min-height: 450px;
+    width: 100%;
+
+    height: 500px;
 
     overflow: hidden;
 
@@ -891,9 +991,8 @@ h4 {
     display: block;
 
     width: 100%;
-    height: 100%;
 
-    min-height: 450px;
+    height: 100%;
 
     border: 0;
 }
@@ -983,10 +1082,18 @@ h4 {
 
     .schedule-grid,
     .cards-grid,
-    .event-grid,
-    .people-grid {
+    .event-grid {
         grid-template-columns: 1fr;
     }
+
+    .people-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .contact-layout {
+        grid-template-columns: 0.9fr 1.1fr;
+    }
+
 }
 
 
@@ -1047,9 +1154,25 @@ h4 {
         gap: 40px;
     }
 
+
+    /* =========================================
+       CONTATO NO CELULAR
+    ========================================= */
+
     .contact-layout {
         grid-template-columns: 1fr;
+
+        gap: 30px;
     }
+
+    .church-photo {
+        height: 380px;
+    }
+
+    .map-wrapper {
+        height: 380px;
+    }
+
 
     .footer-grid {
         grid-template-columns: 1fr;
@@ -1060,6 +1183,7 @@ h4 {
 
         align-items: flex-start;
     }
+
 }
 
 
@@ -1121,8 +1245,48 @@ h4 {
         font-size: 38px;
     }
 
-    .map-wrapper,
-    .map-wrapper iframe {
-        min-height: 350px;
+
+    /* -----------------------------------------
+       LIDERANÇA NO CELULAR
+    ----------------------------------------- */
+
+    .people-grid {
+        grid-template-columns: 1fr;
     }
+
+    .person-photo {
+        height: 330px;
+    }
+
+
+    /* -----------------------------------------
+       EVANGELISMO NO CELULAR
+    ----------------------------------------- */
+
+    .evangelism-image {
+        min-height: 280px;
+    }
+
+    .evangelism-image img {
+        height: 280px;
+    }
+
+
+    /* -----------------------------------------
+       FACHADA NO CELULAR
+    ----------------------------------------- */
+
+    .church-photo {
+        height: 350px;
+    }
+
+
+    /* -----------------------------------------
+       MAPA NO CELULAR
+    ----------------------------------------- */
+
+    .map-wrapper {
+        height: 350px;
+    }
+
 }
