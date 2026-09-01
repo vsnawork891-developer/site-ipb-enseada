@@ -116,9 +116,6 @@ h4 {
     color: white;
 }
 
-.header .logo {
-    transform: translateX(-35px);
-}
 
 .logo-image {
     width: auto;
