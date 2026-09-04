@@ -116,7 +116,6 @@ h4 {
     color: white;
 }
 
-
 .logo-image {
     width: auto;
 
@@ -323,10 +322,6 @@ h4 {
 
     color: white;
 
-    /*
-       Antes: clamp(43px, 6vw, 76px)
-       Agora: escala mais equilibrada para o banner.
-    */
     font-size: clamp(40px, 5vw, 64px);
 
     line-height: 1.06;
@@ -1002,32 +997,225 @@ h4 {
    OFERTAS
 ========================================================= */
 
-.offer-content {
+.offer-section {
     display: flex;
 
-    align-items: center;
+    flex-direction: column;
 
-    justify-content: space-between;
-
-    gap: 40px;
+    gap: 38px;
 }
 
-.offer-content h2 {
+.offer-heading {
+    max-width: 760px;
+}
+
+.offer-heading h2 {
     margin-top: 0;
+    margin-bottom: 18px;
 
     color: white;
 
     font-family: Georgia, "Times New Roman", serif;
 
     font-size: 46px;
+
+    line-height: 1.12;
 }
 
-.offer-content p {
+.offer-heading > p:not(.eyebrow):not(.offer-verse) {
+    margin-bottom: 0;
+
     color: #edf2ed;
 }
 
 .eyebrow-dark {
     color: #dbe5d6;
+}
+
+.offer-verse {
+    margin: 24px 0 0;
+
+    padding: 16px 20px;
+
+    border-left: 3px solid var(--verde-claro);
+
+    background: rgba(255, 255, 255, 0.08);
+
+    color: white;
+
+    font-family: Georgia, "Times New Roman", serif;
+
+    font-style: italic;
+}
+
+.offer-verse strong {
+    font-style: normal;
+}
+
+.offer-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 22px;
+}
+
+.offer-card {
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr) 220px;
+
+    gap: 28px;
+
+    align-items: center;
+
+    padding: 30px;
+
+    background: white;
+
+    color: var(--texto);
+
+    border: 1px solid rgba(255, 255, 255, 0.22);
+
+    box-shadow: 0 12px 30px rgba(20, 45, 34, 0.12);
+}
+
+.offer-purpose {
+    display: inline-block;
+
+    margin-bottom: 12px;
+
+    padding: 7px 11px;
+
+    background: var(--verde-escuro);
+
+    color: white;
+
+    font-size: 10px;
+
+    font-weight: bold;
+
+    letter-spacing: 1.5px;
+}
+
+.offer-card h3 {
+    margin: 0 0 10px;
+
+    color: var(--verde-escuro);
+
+    font-size: 25px;
+}
+
+.offer-card p {
+    margin: 0;
+
+    color: var(--cinza);
+}
+
+.offer-card p strong {
+    color: var(--verde-escuro);
+}
+
+.pix-information {
+    margin-top: 22px;
+
+    padding: 15px 17px;
+
+    background: var(--offwhite);
+
+    border-left: 3px solid var(--verde);
+}
+
+.pix-information span,
+.pix-information strong {
+    display: block;
+}
+
+.pix-information span {
+    margin-bottom: 4px;
+
+    color: var(--cinza);
+
+    font-size: 11px;
+
+    font-weight: bold;
+
+    letter-spacing: 0.7px;
+
+    text-transform: uppercase;
+}
+
+.pix-information strong {
+    overflow-wrap: anywhere;
+
+    color: var(--verde-escuro);
+
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   QR CODES
+========================================================= */
+
+.offer-qrcode {
+    width: 100%;
+
+    text-align: center;
+}
+
+.offer-qrcode img {
+    width: 220px;
+    height: 220px;
+
+    max-width: 100%;
+
+    margin: 0 auto 10px;
+
+    padding: 7px;
+
+    object-fit: contain;
+
+    aspect-ratio: 1 / 1;
+
+    background: white;
+
+    border: 1px solid var(--borda);
+}
+
+.offer-qrcode span {
+    display: block;
+
+    color: var(--cinza);
+
+    font-size: 11px;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   QR CODES - TAMANHO INDIVIDUAL
+========================================================= */
+
+/* Santander - padrão menor */
+.offer-qrcode img.qr-santander {
+    width: 200px;
+    height: 200px;
+}
+
+/* Cora - padrão maior */
+.offer-qrcode img.qr-cora {
+    width: 220px;
+    height: 220px;
+}
+
+.offer-note {
+    margin: 0;
+
+    color: #e7eee8;
+
+    font-size: 13px;
 }
 
 
@@ -1252,6 +1440,10 @@ h4 {
 
 @media (max-width: 1000px) {
 
+    .offer-grid {
+        grid-template-columns: 1fr;
+    }
+
     .nav {
         gap: 18px;
 
@@ -1277,6 +1469,28 @@ h4 {
 
     .contact-layout {
         grid-template-columns: 0.9fr 1.1fr;
+    }
+
+    /* QR Code - Tablet */
+    .offer-card {
+        grid-template-columns: minmax(0, 1fr) 190px;
+    }
+
+    .offer-qrcode img {
+        width: 190px;
+        height: 190px;
+    }
+
+    /* Tamanho individual - Santander */
+    .offer-qrcode img.qr-santander {
+        width: 170px;
+        height: 170px;
+    }
+
+    /* Tamanho individual - Cora */
+    .offer-qrcode img.qr-cora {
+        width: 190px;
+        height: 190px;
     }
 }
 
@@ -1356,10 +1570,25 @@ h4 {
         grid-template-columns: 1fr;
     }
 
-    .offer-content {
-        flex-direction: column;
+    .offer-card {
+        grid-template-columns: minmax(0, 1fr) 190px;
+    }
 
-        align-items: flex-start;
+    .offer-qrcode img {
+        width: 190px;
+        height: 190px;
+    }
+
+    /* Tamanho individual - Santander */
+    .offer-qrcode img.qr-santander {
+        width: 170px;
+        height: 170px;
+    }
+
+    /* Tamanho individual - Cora */
+    .offer-qrcode img.qr-cora {
+        width: 190px;
+        height: 190px;
     }
 }
 
@@ -1427,8 +1656,42 @@ h4 {
         font-size: 38px;
     }
 
-    .offer-content h2 {
+    .offer-heading h2 {
         font-size: 38px;
+    }
+
+    .offer-card {
+        grid-template-columns: 1fr;
+
+        padding: 24px;
+    }
+
+    .offer-qrcode {
+        padding-top: 4px;
+    }
+
+    /* =====================================================
+       QR CODES - CELULAR
+       O tamanho nunca ultrapassa a largura disponível.
+    ===================================================== */
+
+    .offer-qrcode img {
+        width: min(240px, 100%);
+        height: auto;
+
+        aspect-ratio: 1 / 1;
+    }
+
+    /* Santander - até 240px */
+    .offer-qrcode img.qr-santander {
+        width: min(220px, 100%);
+        height: auto;
+    }
+
+    /* Cora - até 200px */
+    .offer-qrcode img.qr-cora {
+        width: min(240px, 100%);
+        height: auto;
     }
 
     .people-grid {
