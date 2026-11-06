@@ -1,0 +1,45 @@
+PAINEL DO MINISTÉRIO DE LOUVOR — PRIMEIRA IPB ENSEADA
+
+CONTEÚDO
+- api/: funções server-side para configuração, inicialização do owner, leitura de perfil e troca obrigatória de senha (Etapa 6).
+- painel-louvor/: login/inicialização e protótipo navegável da Etapa 7.
+
+ETAPA 7 — PROTÓTIPO LOCAL
+- A tela autenticada permite criar, editar e remover itens de repertório, definir visibilidade para ministério/grupos/autor, guardar snapshots ao editar e manter notas pessoais gerais e por item.
+- A interface filtra os itens pelo usuário autenticado, visibilidade e grupos de demonstração cadastrados no próprio navegador. Owner pode consultar e administrar todos os itens locais.
+- Os dados são armazenados em localStorage no navegador atual. Não são sincronizados, não têm backup e podem ser alterados por quem controla o navegador.
+- “Grupos deste usuário” é uma configuração de demonstração editável pelo próprio usuário; não comprova associação real. As permissões da interface não constituem controle de acesso.
+- O pacote não contém banco/migrations, tabelas de repertório/snapshots/notas, associação consultável de usuários a grupos nem políticas RLS para esses dados. A API /api/me retorna apenas perfil básico.
+- Portanto, esta etapa não implementa segurança real multiusuário. Não publique/use para informações privadas ou dados reais até existir backend com autorização no servidor e RLS por registro; notas pessoais também precisam de política própria.
+- Acesso de usuários não-owner e regras de criação/edição/exclusão ainda dependem de permissões confiáveis do backend. No protótipo, autor e owner são as únicas identidades verificadas para edição/exclusão.
+
+VALIDAÇÃO LOCAL
+- Executados: verificação de sintaxe JavaScript com `node --check` nos scripts do pacote.
+- Não há suíte de testes automatizados nem ambiente configurado para exercitar Supabase neste pacote. Login, troca de senha e bootstrap reais dependem das variáveis e tabelas descritas abaixo; não foram chamados.
+- O ZIP de entrada foi preservado em sources/painel-louvor-revisao.zip.
+
+IMPORTANTE
+1. Os arquivos públicos existentes (index.html, script.js e styles.css) não foram alterados.
+2. O painel usa a URL e a chave publicável do Supabase a partir da variável do Vercel; a chave publicável não foi gravada no JavaScript.
+3. A SUPABASE_SECRET_KEY e PANEL_BOOTSTRAP_SECRET são usadas somente nas funções server-side. Nunca coloque essas chaves em arquivos do navegador.
+4. O endpoint de inicialização cria somente a conta principal definida no código: Vinicius, telefone 11986687029. Não cria os outros usuários.
+5. A senha temporária é exibida uma única vez na resposta da inicialização. Guarde-a em local seguro.
+6. Depois de criar a conta, remova PANEL_BOOTSTRAP_SECRET das variáveis do Vercel e faça um novo deploy. Não mantenha a variável ativa.
+
+ANTES DO PRIMEIRO DEPLOY
+- Confira no Supabase se a tabela system_permissions usa exatamente estas colunas: library_view, library_create, library_edit, library_delete, users_view, users_create, users_edit, users_delete, groups_view, groups_create, groups_edit, groups_delete, imports_create, audit_view.
+- Confira se ministry_groups contém os grupos ativos com os nomes exatos: Culto Público, Culto de Oração e EBD.
+- Confirme que as variáveis SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY e PANEL_BOOTSTRAP_SECRET estão configuradas em Preview e Production.
+
+PUBLICAÇÃO E PRIMEIRO ACESSO
+1. Copie a pasta api/ para a raiz do projeto do site.
+2. Copie a pasta painel-louvor/ para a raiz do projeto do site.
+3. Não substitua os arquivos públicos existentes.
+4. Faça primeiro um deploy de Preview para testar.
+5. Acesse /painel-louvor/inicializar.html e informe o valor de PANEL_BOOTSTRAP_SECRET (não o envie por chat).
+6. Guarde a senha temporária exibida.
+7. Remova PANEL_BOOTSTRAP_SECRET do Vercel e faça novo deploy.
+8. Acesse /painel-louvor/ e entre com o telefone e a senha temporária. O sistema solicitará a troca da senha.
+
+OBSERVAÇÃO
+Esta é a primeira etapa funcional: inicialização segura da conta owner e autenticação básica. As telas e operações de biblioteca, escalas/repertórios, grupos e gestão de usuários ainda serão implementadas em etapas seguintes. Nenhuma conta foi criada por este pacote e nenhum deploy foi realizado.

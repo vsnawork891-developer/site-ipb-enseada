@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Inicialização do painel | Primeira IPB Enseada</title>
+  <link rel="stylesheet" href="./painel.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="brand">
+      <div class="brand-mark">IPB</div>
+      <p class="eyebrow">Configuração restrita · uso único</p>
+      <h1>Inicialização do painel</h1>
+      <p class="intro">Criação da conta principal de administração.</p>
+    </section>
+    <section class="panel-card" aria-live="polite">
+      <div id="setupFormView">
+        <h2>Criar conta principal</h2>
+        <p class="muted">Informe o código de inicialização que você cadastrou nas variáveis do Vercel. Ele não será armazenado nesta página.</p>
+        <form id="setupForm">
+          <label for="bootstrapSecret">Código de inicialização</label>
+          <input id="bootstrapSecret" type="password" autocomplete="off" required>
+          <button type="submit">Criar conta principal</button>
+        </form>
+      </div>
+      <div id="resultView" hidden>
+        <h2>Conta criada</h2>
+        <p class="muted">Copie os dados abaixo e guarde-os em local seguro. A senha temporária não será exibida novamente.</p>
+        <label for="loginPhone">Telefone de acesso</label>
+        <input id="loginPhone" readonly>
+        <label for="temporaryPassword">Senha temporária</label>
+        <input id="temporaryPassword" readonly>
+        <button id="copyCredentials" type="button">Copiar dados de acesso</button>
+        <p class="notice">Depois de guardar os dados, remova a variável <strong>PANEL_BOOTSTRAP_SECRET</strong> do Vercel e faça um novo deploy. Em seguida, acesse a tela principal do painel.</p>
+        <a class="button-link" href="./">Ir para o login</a>
+      </div>
+      <p id="feedback" class="feedback" role="alert"></p>
+    </section>
+    <footer>Primeira IPB Enseada · Configuração inicial</footer>
+  </main>
+  <script src="./inicializar.js"></script>
+</body>
+</html>

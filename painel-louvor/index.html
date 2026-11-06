@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Área restrita do Ministério de Louvor da Primeira IPB Enseada.">
+  <title>Painel do Ministério de Louvor | Primeira IPB Enseada</title>
+  <link rel="stylesheet" href="./painel.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="brand">
+      <div class="brand-mark">IPB</div>
+      <p class="eyebrow">Primeira Igreja Presbiteriana na Enseada</p>
+      <h1>Painel do Ministério de Louvor</h1>
+      <p class="intro">Área restrita para organização, escalas e repertórios do ministério.</p>
+    </section>
+
+    <section class="panel-card" aria-live="polite">
+      <div id="loginView">
+        <h2>Acessar o painel</h2>
+        <p class="muted">Entre com seu telefone (DDD + número) e sua senha.</p>
+        <form id="loginForm">
+          <label for="phone">Telefone</label>
+          <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="username" placeholder="11999999999" maxlength="11" required>
+          <label for="password">Senha</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button type="submit">Entrar</button>
+        </form>
+      </div>
+
+      <div id="changePasswordView" hidden>
+        <h2>Defina sua nova senha</h2>
+        <p class="muted">Por segurança, a senha provisória precisa ser substituída no primeiro acesso.</p>
+        <form id="changePasswordForm">
+          <label for="newPassword">Nova senha</label>
+          <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required>
+          <label for="confirmPassword">Confirme a nova senha</label>
+          <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required>
+          <button type="submit">Salvar nova senha</button>
+        </form>
+      </div>
+
+      <div id="homeView" hidden>
+        <h2 id="welcomeTitle">Bem-vindo(a)</h2>
+        <p class="muted">Seu acesso foi validado. Protótipo local da etapa 7.</p>
+        <div class="notice prototype-warning"><strong>Modo de demonstração:</strong> itens, permissões, visibilidade, snapshots e notas ficam somente neste navegador. Acesso real precisa de backend e políticas RLS; não use dados sensíveis.</div>
+        <section class="library" aria-labelledby="libraryTitle">
+          <div class="section-heading"><h2 id="libraryTitle">Biblioteca de repertório</h2><button id="newItemButton" type="button">Novo item</button></div>
+          <p class="muted">Cada item pode ser público para o ministério, restrito a grupos ou privado para seu autor.</p>
+          <div id="itemFormWrap" hidden>
+            <form id="itemForm" class="item-form">
+              <input id="itemId" type="hidden">
+              <label for="itemTitle">Título</label><input id="itemTitle" maxlength="120" required>
+              <label for="itemContent">Conteúdo / referência</label><textarea id="itemContent" rows="4" maxlength="5000"></textarea>
+              <label for="itemVisibility">Visibilidade</label><select id="itemVisibility"><option value="ministry">Todo o ministério (demonstração)</option><option value="groups">Grupos selecionados</option><option value="private">Somente eu</option></select>
+              <div id="groupPicker" hidden><label for="itemGroups">Grupos (separe por vírgula)</label><input id="itemGroups" placeholder="Culto Público, EBD"></div>
+              <button type="submit">Salvar item</button><button id="cancelItemButton" class="secondary" type="button">Cancelar</button>
+            </form>
+          </div>
+          <div id="itemsList" class="items-list"></div>
+          <details class="prototype-settings"><summary>Grupos deste usuário (simulação)</summary><label for="myGroups">Nomes separados por vírgula</label><input id="myGroups" placeholder="Culto Público, EBD"><button id="saveGroupsButton" type="button">Salvar grupos</button></details>
+        </section>
+        <section class="notes" aria-labelledby="notesTitle"><h2 id="notesTitle">Minhas notas pessoais</h2><p class="muted">Privadas neste navegador e associadas ao seu usuário.</p><textarea id="personalNotes" rows="5" maxlength="5000" placeholder="Anotações pessoais…"></textarea><button id="saveNotesButton" type="button">Salvar notas</button></section>
+        <button id="logoutButton" class="secondary" type="button">Sair</button>
+      </div>
+      <p id="feedback" class="feedback" role="alert"></p>
+    </section>
+    <footer>Primeira IPB Enseada · Acesso privado</footer>
+  </main>
+  <script src="./painel.js"></script>
+</body>
+</html>
