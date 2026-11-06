@@ -1,45 +1,33 @@
 PAINEL DO MINISTÉRIO DE LOUVOR — PRIMEIRA IPB ENSEADA
 
-CONTEÚDO
-- api/: funções server-side para configuração, inicialização do owner, leitura de perfil e troca obrigatória de senha (Etapa 6).
-- painel-louvor/: login/inicialização e protótipo navegável da Etapa 7.
+ETAPA 8 — PERSISTÊNCIA
+Esta versão substitui o armazenamento de demonstração por tabelas do Supabase:
+- library_items: títulos, conteúdo, visibilidade, grupos, autoria e datas.
+- library_item_snapshots: versões anteriores gravadas automaticamente quando o item muda.
+- personal_notes: uma nota geral e notas privadas por música para cada usuário.
+- RLS aplica acesso para perfis ativos, permissões da biblioteca e associação/ações por grupo.
 
-ETAPA 7 — PROTÓTIPO LOCAL
-- A tela autenticada permite criar, editar e remover itens de repertório, definir visibilidade para ministério/grupos/autor, guardar snapshots ao editar e manter notas pessoais gerais e por item.
-- A interface filtra os itens pelo usuário autenticado, visibilidade e grupos de demonstração cadastrados no próprio navegador. Owner pode consultar e administrar todos os itens locais.
-- Os dados são armazenados em localStorage no navegador atual. Não são sincronizados, não têm backup e podem ser alterados por quem controla o navegador.
-- “Grupos deste usuário” é uma configuração de demonstração editável pelo próprio usuário; não comprova associação real. As permissões da interface não constituem controle de acesso.
-- O pacote não contém banco/migrations, tabelas de repertório/snapshots/notas, associação consultável de usuários a grupos nem políticas RLS para esses dados. A API /api/me retorna apenas perfil básico.
-- Portanto, esta etapa não implementa segurança real multiusuário. Não publique/use para informações privadas ou dados reais até existir backend com autorização no servidor e RLS por registro; notas pessoais também precisam de política própria.
-- Acesso de usuários não-owner e regras de criação/edição/exclusão ainda dependem de permissões confiáveis do backend. No protótipo, autor e owner são as únicas identidades verificadas para edição/exclusão.
+ANTES DE PUBLICAR ESTA VERSÃO
+1. No Supabase, abra SQL Editor e execute uma vez `supabase/etapa8-persistencia.sql`.
+2. Confira que a consulta terminou com sucesso. Ela cria as tabelas novas, triggers, políticas RLS e privilégios usados pelo painel. Também concede SELECT/INSERT/UPDATE necessários ao papel server-side `service_role` nas tabelas de apoio existentes.
+3. Não conceda as tabelas do acervo a `anon`. O navegador usa a chave publicável e o token do usuário; a autorização dos registros é feita por RLS.
+4. A migration supõe que as tabelas existentes têm os contratos da Etapa 6: `profiles` (id, role, is_owner, is_active), `system_permissions` (user_id e colunas library_*, users_*, groups_*, imports_create, audit_view), `ministry_groups` (id, name, is_active) e `group_memberships` (user_id, group_id, has_access, can_view, can_create, can_edit, can_delete).
+5. Mantenha no Vercel `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida depois da criação da conta principal.
 
-VALIDAÇÃO LOCAL
-- Executados: verificação de sintaxe JavaScript com `node --check` nos scripts do pacote.
-- Não há suíte de testes automatizados nem ambiente configurado para exercitar Supabase neste pacote. Login, troca de senha e bootstrap reais dependem das variáveis e tabelas descritas abaixo; não foram chamados.
-- O ZIP de entrada foi preservado em sources/painel-louvor-revisao.zip.
+PUBLICAÇÃO
+- Atualize `api/`, `painel-louvor/` e mantenha o diretório `supabase/etapa8-persistencia.sql` no repositório para controle de versão.
+- A página pública existente (`index.html`, `script.js` e `styles.css`) não é alterada por este pacote.
+- A tela do painel consulta as tabelas diretamente com a chave publicável e o token Supabase do usuário; RLS restringe cada operação.
+- Execute primeiro a migration no Supabase. Depois publique os arquivos na branch de produção do Vercel.
 
-IMPORTANTE
-1. Os arquivos públicos existentes (index.html, script.js e styles.css) não foram alterados.
-2. O painel usa a URL e a chave publicável do Supabase a partir da variável do Vercel; a chave publicável não foi gravada no JavaScript.
-3. A SUPABASE_SECRET_KEY e PANEL_BOOTSTRAP_SECRET são usadas somente nas funções server-side. Nunca coloque essas chaves em arquivos do navegador.
-4. O endpoint de inicialização cria somente a conta principal definida no código: Vinicius, telefone 11986687029. Não cria os outros usuários.
-5. A senha temporária é exibida uma única vez na resposta da inicialização. Guarde-a em local seguro.
-6. Depois de criar a conta, remova PANEL_BOOTSTRAP_SECRET das variáveis do Vercel e faça um novo deploy. Não mantenha a variável ativa.
+MODELO DE ACESSO
+- Perfil inativo não acessa o acervo.
+- `system_permissions.library_view/create/edit/delete` controla as operações gerais. O owner possui todas as permissões.
+- `group_memberships` limita itens compartilhados por grupo e exige `has_access` mais a ação correspondente.
+- Itens `ministry` são visíveis a perfis ativos que tenham `library_view`; itens `groups` só aparecem a membros com `can_view`; itens `private` ficam visíveis ao autor e ao owner.
+- Snapshots seguem a visibilidade do item. Notas pessoais só podem ser lidas ou alteradas pelo próprio usuário.
 
-ANTES DO PRIMEIRO DEPLOY
-- Confira no Supabase se a tabela system_permissions usa exatamente estas colunas: library_view, library_create, library_edit, library_delete, users_view, users_create, users_edit, users_delete, groups_view, groups_create, groups_edit, groups_delete, imports_create, audit_view.
-- Confira se ministry_groups contém os grupos ativos com os nomes exatos: Culto Público, Culto de Oração e EBD.
-- Confirme que as variáveis SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY e PANEL_BOOTSTRAP_SECRET estão configuradas em Preview e Production.
-
-PUBLICAÇÃO E PRIMEIRO ACESSO
-1. Copie a pasta api/ para a raiz do projeto do site.
-2. Copie a pasta painel-louvor/ para a raiz do projeto do site.
-3. Não substitua os arquivos públicos existentes.
-4. Faça primeiro um deploy de Preview para testar.
-5. Acesse /painel-louvor/inicializar.html e informe o valor de PANEL_BOOTSTRAP_SECRET (não o envie por chat).
-6. Guarde a senha temporária exibida.
-7. Remova PANEL_BOOTSTRAP_SECRET do Vercel e faça novo deploy.
-8. Acesse /painel-louvor/ e entre com o telefone e a senha temporária. O sistema solicitará a troca da senha.
-
-OBSERVAÇÃO
-Esta é a primeira etapa funcional: inicialização segura da conta owner e autenticação básica. As telas e operações de biblioteca, escalas/repertórios, grupos e gestão de usuários ainda serão implementadas em etapas seguintes. Nenhuma conta foi criada por este pacote e nenhum deploy foi realizado.
+NOTAS
+- A biblioteca persiste título, texto livre para cifra/links/notas, visibilidade e grupos. Não há ainda entidade musical estruturada para tom, compositor, duração, letra ou arquivo de cifra.
+- Escalas e repertórios por culto, cadastro de usuários/grupos, auditoria e importação continuam sendo módulos futuros; a navegação não os apresenta como disponíveis.
+- O SQL não foi executado neste projeto Supabase e precisa ser aplicado pelo responsável. Nenhum dado de produção foi migrado ou apagado por este pacote.

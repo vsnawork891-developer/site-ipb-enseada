@@ -5,71 +5,105 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <meta name="description" content="Área restrita do Ministério de Louvor da Primeira IPB Enseada.">
+  <meta name="theme-color" content="#090b0d">
   <title>Painel do Ministério de Louvor | Primeira IPB Enseada</title>
   <link rel="stylesheet" href="./painel.css">
 </head>
 <body>
-  <main class="shell">
-    <section class="brand">
-      <div class="brand-mark">IPB</div>
-      <p class="eyebrow">Primeira Igreja Presbiteriana na Enseada</p>
-      <h1>Painel do Ministério de Louvor</h1>
-      <p class="intro">Área restrita para organização, escalas e repertórios do ministério.</p>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <main class="app-shell">
+    <header class="brand-header">
+      <a class="brand-lockup" href="./" aria-label="Painel IPB Enseada">
+        <span class="brand-mark">IPB</span>
+        <span><strong>Primeira Igreja Presbiteriana na Enseada</strong><small>Ministério de Louvor</small></span>
+      </a>
+      <span class="access-pill"><span class="status-dot"></span> Área restrita</span>
+    </header>
+
+    <section class="auth-card" id="loginView">
+      <div class="auth-art" aria-hidden="true"><span class="note note-a">♪</span><span class="note note-b">♫</span><div class="sound-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <p class="eyebrow">Organização · comunhão · música</p>
+      <h1>Painel do Ministério<br><span>de Louvor</span></h1>
+      <p class="muted">Acesse escalas, repertórios e materiais do ministério.</p>
+      <form id="loginForm" class="form-stack">
+        <label for="phone">Telefone com DDD</label>
+        <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="username" placeholder="11999999999" maxlength="11" required>
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit" class="button-primary">Entrar no painel <span aria-hidden="true">↗</span></button>
+      </form>
     </section>
 
-    <section class="panel-card" aria-live="polite">
-      <div id="loginView">
-        <h2>Acessar o painel</h2>
-        <p class="muted">Entre com seu telefone (DDD + número) e sua senha.</p>
-        <form id="loginForm">
-          <label for="phone">Telefone</label>
-          <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="username" placeholder="11999999999" maxlength="11" required>
-          <label for="password">Senha</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required>
-          <button type="submit">Entrar</button>
-        </form>
-      </div>
+    <section class="auth-card password-card" id="changePasswordView" hidden>
+      <span class="section-kicker">Primeiro acesso</span>
+      <h1>Defina sua nova senha</h1>
+      <p class="muted">Confirme a senha temporária e escolha uma senha pessoal com pelo menos 8 caracteres.</p>
+      <form id="changePasswordForm" class="form-stack">
+        <label for="currentPassword">Senha temporária atual</label>
+        <input id="currentPassword" type="password" autocomplete="current-password" required>
+        <label for="newPassword">Nova senha</label>
+        <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required>
+        <label for="confirmPassword">Confirme a nova senha</label>
+        <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required>
+        <button type="submit" class="button-primary">Salvar e continuar</button>
+      </form>
+    </section>
 
-      <div id="changePasswordView" hidden>
-        <h2>Defina sua nova senha</h2>
-        <p class="muted">Por segurança, a senha provisória precisa ser substituída no primeiro acesso.</p>
-        <form id="changePasswordForm">
-          <label for="currentPassword">Senha atual (temporária)</label>
-          <input id="currentPassword" type="password" autocomplete="current-password" required>
-          <label for="newPassword">Nova senha</label>
-          <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required>
-          <label for="confirmPassword">Confirme a nova senha</label>
-          <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required>
-          <button type="submit">Salvar nova senha</button>
-        </form>
-      </div>
+    <section id="homeView" class="dashboard" hidden>
+      <aside class="sidebar">
+        <div class="sidebar-title"><span class="sidebar-icon">♫</span><span>PAINEL<small>MINISTÉRIO DE LOUVOR</small></span></div>
+        <nav aria-label="Navegação do painel">
+          <a class="nav-link active" href="#librarySection"><span>▤</span> Biblioteca</a>
+          <a class="nav-link" href="#personalNotesSection"><span>✎</span> Minhas notas</a>
+        </nav>
+        <div class="sidebar-bottom"><span class="status-dot"></span><span>Conectado ao banco</span></div>
+      </aside>
 
-      <div id="homeView" hidden>
-        <h2 id="welcomeTitle">Bem-vindo(a)</h2>
-        <p class="muted">Seu acesso foi validado. Protótipo local da etapa 7.</p>
-        <div class="notice prototype-warning"><strong>Modo de demonstração:</strong> itens, permissões, visibilidade, snapshots e notas ficam somente neste navegador. Acesso real precisa de backend e políticas RLS; não use dados sensíveis.</div>
-        <section class="library" aria-labelledby="libraryTitle">
-          <div class="section-heading"><h2 id="libraryTitle">Biblioteca de repertório</h2><button id="newItemButton" type="button">Novo item</button></div>
-          <p class="muted">Cada item pode ser público para o ministério, restrito a grupos ou privado para seu autor.</p>
-          <div id="itemFormWrap" hidden>
-            <form id="itemForm" class="item-form">
+      <div class="dashboard-main">
+        <header class="topbar">
+          <div><p class="eyebrow">PRIMEIRA IPB ENSEADA</p><h1 id="welcomeTitle">Olá</h1></div>
+          <button id="logoutButton" class="button-quiet" type="button">Sair <span aria-hidden="true">↗</span></button>
+        </header>
+
+        <section class="welcome-banner">
+          <div><span class="section-kicker">MÚSICA QUE SERVE À IGREJA</span><h2>Prepare o louvor<br>com propósito.</h2><p>Repertórios e referências em um só lugar, acessíveis conforme seus grupos.</p></div>
+          <div class="banner-symbol" aria-hidden="true"><span>♫</span><i></i><i></i><i></i></div>
+        </section>
+
+        <section id="librarySection" class="content-section">
+          <div class="section-heading">
+            <div><span class="section-kicker">ACERVO DO MINISTÉRIO</span><h2>Biblioteca de repertório</h2><p>Consulte músicas, cifras e referências compartilhadas com você.</p></div>
+            <button id="newItemButton" class="button-primary" type="button"><span aria-hidden="true">＋</span> Novo repertório</button>
+          </div>
+          <div class="toolbar"><label class="search-box" for="searchItems"><span>⌕</span><input id="searchItems" type="search" placeholder="Buscar por título ou conteúdo"></label><label class="filter-box" for="filterVisibility">Exibir<select id="filterVisibility"><option value="all">Tudo que posso acessar</option><option value="ministry">Ministério</option><option value="groups">Meus grupos</option><option value="private">Meus itens</option></select></label><span id="itemsCount" class="count-pill">0 itens</span></div>
+
+          <div id="itemFormWrap" class="editor-card" hidden>
+            <div class="editor-heading"><div><span class="section-kicker">ACERVO</span><h3 id="itemFormTitle">Novo repertório</h3></div><button id="cancelItemButton" class="icon-button" type="button" aria-label="Fechar formulário">×</button></div>
+            <form id="itemForm" class="editor-grid">
               <input id="itemId" type="hidden">
-              <label for="itemTitle">Título</label><input id="itemTitle" maxlength="120" required>
-              <label for="itemContent">Conteúdo / referência</label><textarea id="itemContent" rows="4" maxlength="5000"></textarea>
-              <label for="itemVisibility">Visibilidade</label><select id="itemVisibility"><option value="ministry">Todo o ministério (demonstração)</option><option value="groups">Grupos selecionados</option><option value="private">Somente eu</option></select>
-              <div id="groupPicker" hidden><label for="itemGroups">Grupos (separe por vírgula)</label><input id="itemGroups" placeholder="Culto Público, EBD"></div>
-              <button type="submit">Salvar item</button><button id="cancelItemButton" class="secondary" type="button">Cancelar</button>
+              <div class="field full-field"><label for="itemTitle">Título da música ou repertório</label><input id="itemTitle" maxlength="160" placeholder="Ex.: Grandioso És Tu" required></div>
+              <div class="field full-field"><label for="itemContent">Cifra, tom, link ou observações</label><textarea id="itemContent" rows="5" maxlength="12000" placeholder="Inclua cifras, links e referências importantes"></textarea></div>
+              <div class="field"><label for="itemVisibility">Quem pode acessar?</label><select id="itemVisibility"><option value="ministry">Todo o ministério</option><option value="groups">Grupos selecionados</option><option value="private">Somente eu</option></select></div>
+              <fieldset id="groupPicker" class="field group-picker" hidden><legend>Grupos com acesso</legend><div id="groupChoices" class="group-choices"></div></fieldset>
+              <div class="editor-actions full-field"><button type="submit" class="button-primary">Salvar no acervo</button><button id="cancelItemButtonBottom" class="button-quiet" type="button">Cancelar</button></div>
             </form>
           </div>
-          <div id="itemsList" class="items-list"></div>
-          <details class="prototype-settings"><summary>Grupos deste usuário (simulação)</summary><label for="myGroups">Nomes separados por vírgula</label><input id="myGroups" placeholder="Culto Público, EBD"><button id="saveGroupsButton" type="button">Salvar grupos</button></details>
+
+          <div id="itemsList" class="items-grid" aria-live="polite"></div>
+          <div id="emptyState" class="empty-state" hidden><span class="empty-icon">♫</span><h3>Seu acervo começa aqui</h3><p>Adicione músicas, cifras e referências para organizar o louvor.</p><button id="emptyNewItemButton" class="button-outline" type="button">Adicionar primeiro repertório</button></div>
+          <div id="noAccessState" class="empty-state" hidden><span class="empty-icon">⌁</span><h3>Biblioteca indisponível</h3><p>Seu perfil ainda não tem permissão para consultar o acervo. Procure o administrador do painel.</p></div>
         </section>
-        <section class="notes" aria-labelledby="notesTitle"><h2 id="notesTitle">Minhas notas pessoais</h2><p class="muted">Privadas neste navegador e associadas ao seu usuário.</p><textarea id="personalNotes" rows="5" maxlength="5000" placeholder="Anotações pessoais…"></textarea><button id="saveNotesButton" type="button">Salvar notas</button></section>
-        <button id="logoutButton" class="secondary" type="button">Sair</button>
+
+        <section id="personalNotesSection" class="content-section notes-section">
+          <div class="section-heading"><div><span class="section-kicker">ESPAÇO PESSOAL</span><h2>Minhas notas</h2><p>Notas privadas, vinculadas à sua conta e salvas no banco.</p></div></div>
+          <div class="notes-card"><textarea id="personalNotes" rows="5" maxlength="8000" placeholder="Anote ideias, referências e lembretes para o ministério…"></textarea><div class="notes-footer"><span>Somente você pode ver estas notas.</span><button id="saveNotesButton" class="button-outline" type="button">Salvar notas</button></div></div>
+        </section>
+        <footer class="dashboard-footer">Primeira Igreja Presbiteriana na Enseada <span>·</span> Ministério de Louvor</footer>
       </div>
-      <p id="feedback" class="feedback" role="alert"></p>
     </section>
-    <footer>Primeira IPB Enseada · Acesso privado</footer>
+
+    <p id="feedback" class="feedback" role="alert" aria-live="polite"></p>
   </main>
   <script src="./painel.js"></script>
 </body>
