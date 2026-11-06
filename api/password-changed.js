@@ -4,8 +4,10 @@ function send(res,status,body){res.setHeader('Content-Type','application/json; c
 module.exports = async (req,res) => {
   if(req.method!=='POST') return send(res,405,{error:'Método não permitido.'});
   const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
+  const currentPassword=String(req.body?.currentPassword||'');
   const newPassword=String(req.body?.newPassword||'');
   if(!token) return send(res,401,{error:'Sessão não informada.'});
+  if(!currentPassword) return send(res,400,{error:'Informe sua senha atual.'});
   if(newPassword.length<8) return send(res,400,{error:'A nova senha precisa ter pelo menos 8 caracteres.'});
   try{
     const auth=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${token}`}});
@@ -15,7 +17,7 @@ module.exports = async (req,res) => {
     if(!profileResponse.ok) return send(res,500,{error:'Não foi possível validar o perfil.'});
     const profiles=await profileResponse.json();
     if(!profiles.length) return send(res,404,{error:'Perfil não encontrado.'});
-    const passwordUpdate=await fetch(`${SUPABASE_URL}/auth/v1/user`,{method:'PUT',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({password:newPassword})});
+    const passwordUpdate=await fetch(`${SUPABASE_URL}/auth/v1/user`,{method:'PUT',headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({current_password:currentPassword,password:newPassword})});
     if(!passwordUpdate.ok){const issue=await passwordUpdate.json().catch(()=>({}));return send(res,400,{error:issue.msg||issue.message||'Não foi possível alterar a senha.'});}
     const update=await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}`,{method:'PATCH',headers:{apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({must_change_password:false})});
     if(!update.ok) return send(res,500,{error:'A senha foi alterada, mas não foi possível atualizar o perfil. Entre novamente e procure o administrador.'});

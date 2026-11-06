@@ -34,6 +34,8 @@
         <h2>Defina sua nova senha</h2>
         <p class="muted">Por segurança, a senha provisória precisa ser substituída no primeiro acesso.</p>
         <form id="changePasswordForm">
+          <label for="currentPassword">Senha atual (temporária)</label>
+          <input id="currentPassword" type="password" autocomplete="current-password" required>
           <label for="newPassword">Nova senha</label>
           <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required>
           <label for="confirmPassword">Confirme a nova senha</label>

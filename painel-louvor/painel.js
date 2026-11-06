@@ -144,15 +144,20 @@ $('loginForm').addEventListener('submit', async (event) => {
 $('changePasswordForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = event.submitter;
+  const currentPassword = $('currentPassword').value;
   const password = $('newPassword').value;
+  if (!currentPassword) return message('Informe sua senha atual.');
   if (password !== $('confirmPassword').value) return message('As senhas não coincidem.');
   if (password.length < 8) return message('A senha precisa ter pelo menos 8 caracteres.');
   button.disabled = true;
   try {
-    const response = await fetch('/api/password-changed', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ newPassword: password }) });
+    const response = await fetch('/api/password-changed', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ currentPassword, newPassword: password }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'A senha foi alterada, mas não foi possível atualizar o perfil. Entre novamente e contate o administrador.');
     profile.must_change_password = false;
+    $('currentPassword').value = '';
+    $('newPassword').value = '';
+    $('confirmPassword').value = '';
     $('welcomeTitle').textContent = `Olá, ${profile.full_name || 'bem-vindo(a)'}`;
     showView('homeView');
   } catch (error) { message(error.message); }
