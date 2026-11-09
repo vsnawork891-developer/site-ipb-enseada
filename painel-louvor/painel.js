@@ -12,11 +12,13 @@ let managedUsers = [];
 let managedGroups = [];
 let ministryGroups = [];
 let songCatalog = [];
+let groupServices = [];
 let selectedGroup = null;
 let importDraft = [];
 let returnToServiceEditor = false;
 let returnToServiceRow = null;
 let dashboardInitialized = false;
+const PROJECT_START_MONTH = '2026-11';
 
 function showView(id) {
   views.forEach(view => { $(view).hidden = view !== id; });
@@ -376,7 +378,9 @@ function renderGroupTiles() {
     const tile = document.createElement('article');
     tile.className = 'group-tile';
     tile.dataset.groupId = group.id;
-    tile.innerHTML = `<div><span class="group-symbol">♫</span><h3>${escapeHtml(group.name)}</h3><p>${escapeHtml(weekdayNames[group.service_weekday] || 'Dia a definir')} · ${access?.can_create || access?.can_edit ? 'Escalas e repertórios do grupo' : 'Consulte as escalas e repertórios'}</p></div><div class="tile-actions">${canGroupModule('edit') ? `<button class="button-outline" data-group-action="edit" type="button">Editar</button>` : ''}${canGroupModule('delete') ? `<button class="button-quiet" data-group-action="deactivate" type="button">Desativar</button>` : ''}</div>`;
+    const groupKey = normalizedText(group.name);
+    const iconFile = groupKey.includes('ebd') || groupKey.includes('escola biblica') ? 'ebd.svg' : groupKey.includes('oracao') ? 'culto-oracao.svg' : groupKey.includes('publico') ? 'culto-publico.svg' : 'grupo-generico.svg';
+    tile.innerHTML = `<div class="group-tile-heading"><img class="group-symbol" src="/images/painel/${iconFile}" alt="" aria-hidden="true"><div><h3>${escapeHtml(group.name)}</h3><p>${escapeHtml(weekdayNames[group.service_weekday] || 'Dia a definir')} · ${access?.can_create || access?.can_edit ? 'Escalas e repertórios do grupo' : 'Consulte as escalas e repertórios'}</p></div></div><div class="tile-actions">${canGroupModule('edit') ? `<button class="button-outline" data-group-action="edit" type="button">Editar</button>` : ''}${canGroupModule('delete') ? `<button class="button-quiet" data-group-action="deactivate" type="button">Desativar</button>` : ''}</div>`;
     tile.addEventListener('click', event => { if (!event.target.closest('button')) openGroup(group); });
     tile.querySelectorAll('button').forEach(button => button.addEventListener('click', event => { event.stopPropagation(); handleGroupAction(group, button.dataset.groupAction); }));
     $('groupsList').append(tile);
@@ -420,12 +424,11 @@ function monthKey(date) { return `${date.getFullYear()}-${String(date.getMonth()
 function fillMonthOptions(services = []) {
   const select = $('serviceMonth');
   const previous = select.value;
-  const keys = new Set([monthKey(new Date()), ...services.map(service => String(service.service_date).slice(0, 7))]);
-  const now = new Date();
-  for (let offset = -24; offset <= 36; offset++) { const date = new Date(now.getFullYear(), now.getMonth() + offset, 1); keys.add(monthKey(date)); }
-  const sorted = [...keys].sort().reverse();
-  select.innerHTML = sorted.map(key => { const [year, month] = key.split('-').map(Number); const label = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); return `<option value="${key}">${escapeHtml(label)}</option>`; }).join('');
-  select.value = keys.has(previous) ? previous : (keys.has(monthKey(new Date())) ? monthKey(new Date()) : sorted[0]);
+  const current = monthKey(new Date());
+  $('currentServiceMonth').textContent = new Date(`${current}-01T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const keys = [...new Set(services.map(service => String(service.service_date).slice(0, 7)).filter(key => key >= PROJECT_START_MONTH && key < current))].sort().reverse();
+  select.innerHTML = '<option value="">Nenhuma escala anterior</option>' + keys.map(key => { const [year, month] = key.split('-').map(Number); const label = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); return `<option value="${key}">${escapeHtml(label)}</option>`; }).join('');
+  select.value = keys.includes(previous) ? previous : '';
 }
 async function openGroup(group) {
   selectedGroup = group;
@@ -439,22 +442,25 @@ async function openGroup(group) {
 }
 async function loadServices() {
   const result = await louvorApi('services', 'GET', null, `&group_id=${encodeURIComponent(selectedGroup.id)}`);
-  const services = result.services || [];
-  fillMonthOptions(services);
-  renderServices(services);
+  groupServices = result.services || [];
+  fillMonthOptions(groupServices);
+  renderServices(groupServices);
 }
 function formatServiceDate(date) { return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }); }
 function renderServices(allServices) {
-  const month = $('serviceMonth').value;
+  const month = $('serviceMonth').value || monthKey(new Date());
+  const isCurrentMonth = month === monthKey(new Date());
   const [year, monthNumber] = month.split('-').map(Number);
   const targetWeekday = Number.isInteger(selectedGroup.service_weekday) ? selectedGroup.service_weekday : 0;
   const lastDay = new Date(year, monthNumber, 0).getDate();
   const existingByDate = new Map(allServices.filter(service => String(service.service_date).startsWith(month)).map(service => [service.service_date, service]));
-  const dates = [];
-  for (let day = 1; day <= lastDay; day++) {
-    const date = new Date(year, monthNumber - 1, day, 12);
-    if (date.getDay() === targetWeekday) dates.push(`${year}-${String(monthNumber).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-  }
+  const dates = isCurrentMonth
+    ? Array.from({ length: lastDay }, (_, index) => index + 1).filter(day => new Date(year, monthNumber - 1, day, 12).getDay() === targetWeekday).map(day => `${year}-${String(monthNumber).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+    : [...existingByDate.keys()].sort();
+  $('newServiceButton').hidden = !canGroup('create') || !isCurrentMonth;
+  $('emptyNewServiceButton').hidden = !canGroup('create') || !isCurrentMonth;
+  $('servicesEmptyState').querySelector('h3').textContent = isCurrentMonth ? 'Nenhuma escala neste mês' : 'Nenhuma escala anterior neste período';
+  $('servicesEmptyState').querySelector('p').textContent = isCurrentMonth ? 'Adicione uma escala ou importe o arquivo mensal.' : 'Este grupo ainda não tem escalas salvas neste mês.';
   $('servicesList').replaceChildren(); $('servicesEmptyState').hidden = dates.length > 0;
   dates.forEach(date => {
     const service = existingByDate.get(date);
@@ -462,7 +468,7 @@ function renderServices(allServices) {
     const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const themeLabel = service?.theme || 'Tema a definir';
     card.innerHTML = `<span class="service-date">${escapeHtml(formatServiceDate(date))}</span><h3>Repertório · ${escapeHtml(dateLabel)}</h3><p class="theme">Tema: ${escapeHtml(themeLabel)}</p><p>${service ? 'Escala cadastrada · clique para consultar' : (canGroup('create') ? 'Clique para preparar esta escala' : 'Escala ainda não publicada')}</p>`;
-    card.addEventListener('click', () => service ? openService(service.id) : (canGroup('create') ? openServiceEditor(null, { service_date: date }) : null));
+    card.addEventListener('click', () => service ? openService(service.id) : (isCurrentMonth && canGroup('create') ? openServiceEditor(null, { service_date: date }) : null));
     $('servicesList').append(card);
   });
 }
@@ -717,7 +723,7 @@ function setupDashboard() {
   $('backToGroupsButton').addEventListener('click', () => { activatePanelSection('groupsSection'); loadGroups().catch(error => message(error.message)); });
   $('newServiceButton').addEventListener('click', () => openServiceEditor());
   $('emptyNewServiceButton').addEventListener('click', () => openServiceEditor());
-  $('serviceMonth').addEventListener('change', () => { loadServices().catch(error => message(error.message)); });
+  $('serviceMonth').addEventListener('change', () => renderServices(groupServices));
   $('serviceForm').addEventListener('submit', saveServiceForm);
   $('cancelServiceButton').addEventListener('click', () => { $('serviceEditorWrap').hidden = true; });
   $('cancelServiceBottomButton').addEventListener('click', () => { $('serviceEditorWrap').hidden = true; });

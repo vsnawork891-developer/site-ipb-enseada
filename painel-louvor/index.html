@@ -90,7 +90,7 @@
         </section>
 
         <section id="servicesSection" class="content-section" hidden>
-          <div class="section-heading"><div><button id="backToGroupsButton" class="button-quiet" type="button">← Grupos</button><span id="serviceGroupKicker" class="section-kicker"></span><h2 id="serviceGroupTitle">Escalas</h2><p>Escalas organizadas por data e tema.</p></div><div class="admin-actions"><label class="filter-box" for="serviceMonth">Mês<select id="serviceMonth"></select></label><button id="newServiceButton" class="button-primary" type="button" hidden>＋ Nova escala</button></div></div>
+          <div class="section-heading"><div><button id="backToGroupsButton" class="button-quiet" type="button">← Grupos</button><span id="serviceGroupKicker" class="section-kicker"></span><h2 id="serviceGroupTitle">Escalas</h2><p>Repertório do mês atual e consulta de escalas anteriores.</p></div><div class="service-period-tools"><div class="current-period"><span class="section-kicker">MÊS ATUAL</span><strong id="currentServiceMonth"></strong></div><label class="filter-box history-filter" for="serviceMonth">Escalas anteriores<select id="serviceMonth"><option value="">Nenhuma escala anterior</option></select></label><button id="newServiceButton" class="button-primary" type="button" hidden>＋ Nova escala</button></div></div>
           <div id="servicesList" class="service-tiles"></div>
           <div id="servicesEmptyState" class="empty-state" hidden><span class="empty-icon">♫</span><h3>Nenhuma escala neste mês</h3><p>Adicione uma escala ou importe o arquivo mensal.</p><button id="emptyNewServiceButton" class="button-outline" type="button">Criar escala</button></div>
           <div id="serviceEditorWrap" class="editor-card" hidden>

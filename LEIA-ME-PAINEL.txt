@@ -4,6 +4,8 @@ ETAPA 10 — GRUPOS, ESCALAS E REPERTÓRIOS (CUMULATIVA)
 Esta versão completa os fluxos previstos para o ministério:
 - Página inicial em cards de grupos; cadastro, edição e desativação de grupos com dia habitual do culto.
 - A tela de cada grupo exibe os domingos ou dias de culto daquele mês, mesmo antes de uma escala ser cadastrada.
+- Ícones SVG próprios para Culto Público, Culto de Oração e EBD; grupos novos usam um ícone genérico.
+- O mês atual é gerado automaticamente pela data do acesso. Escalas anteriores aparecem em uma lista separada, somente para meses desde novembro/2026 que tenham escalas salvas; meses futuros e meses sem histórico não poluem a lista.
 - Escalas por grupo, data e tema; cantores e músicos separados; até oito músicas por escala.
 - Biblioteca musical reutilizável com artista, compositor, tons masculino/feminino, links e temas.
 - Importação de TXT com prévia; detecta mês, grupo, semanas, pessoas e músicas, completa datas pelo dia habitual do grupo e associa títulos já existentes na biblioteca.
@@ -33,7 +35,7 @@ ANTES DE PUBLICAR ESTA VERSÃO
 6. Mantenha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida.
 
 PUBLICAÇÃO
-- Atualize `api/`, `painel-louvor/` e `supabase/`; mantenha as migrations das etapas 8, 9 e 10 no repositório.
+- Atualize `api/`, `painel-louvor/`, `images/painel/` e `supabase/`; mantenha as migrations das etapas 8, 9 e 10 no repositório. A pasta `images/painel/` é necessária para os ícones dos grupos.
 - A página pública existente (`index.html`, `script.js` e `styles.css`) não é alterada por este pacote.
 - A biblioteca antiga da Etapa 8 continua usando a chave publicável e o token do usuário, com RLS.
 - Escalas, equipes e a nova biblioteca musical passam pelo endpoint server-side `/api/louvor.js`, que valida sessão e permissões antes de acessar o banco.
