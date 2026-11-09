@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
     const id = encodeURIComponent(user.id);
 
     const [profiles, permissionRows, memberships, activeGroups] = await Promise.all([
-      rest(`profiles?select=id,full_name,phone,role,is_owner,is_active,must_change_password&id=eq.${id}&limit=1`),
+      rest(`profiles?select=id,full_name,phone,role,is_owner,is_active,must_change_password,all_groups_access&id=eq.${id}&limit=1`),
       rest(`system_permissions?select=${PERMISSION_KEYS.join(',')}&user_id=eq.${id}&limit=1`),
       rest(`group_memberships?select=group_id,has_access,can_view,can_create,can_edit,can_delete&user_id=eq.${id}&has_access=eq.true`),
       rest('ministry_groups?select=id,name,is_active&is_active=eq.true&order=name.asc')
@@ -57,13 +57,14 @@ module.exports = async (req, res) => {
     const permissionRow = permissionRows[0] || {};
     const groupAccess = new Map(memberships.map(row => [row.group_id, row]));
     const groups = activeGroups
-      .filter(group => owner || groupAccess.has(group.id))
+      .filter(group => owner || profile.all_groups_access === true || groupAccess.has(group.id))
       .map(group => {
         const access = groupAccess.get(group.id) || {};
+        const globalView = profile.all_groups_access === true;
         return {
           id: group.id,
           name: group.name,
-          can_view: owner || access.can_view === true,
+          can_view: owner || globalView || access.can_view === true,
           can_create: owner || access.can_create === true,
           can_edit: owner || access.can_edit === true,
           can_delete: owner || access.can_delete === true

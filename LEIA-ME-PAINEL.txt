@@ -1,23 +1,42 @@
 PAINEL DO MINISTÉRIO DE LOUVOR — PRIMEIRA IPB ENSEADA
 
-ETAPA 8 — PERSISTÊNCIA
-Esta versão substitui o armazenamento de demonstração por tabelas do Supabase:
+ETAPA 10 — GRUPOS, ESCALAS E REPERTÓRIOS (CUMULATIVA)
+Esta versão completa os fluxos previstos para o ministério:
+- Página inicial em cards de grupos; cadastro, edição e desativação de grupos com dia habitual do culto.
+- A tela de cada grupo exibe os domingos ou dias de culto daquele mês, mesmo antes de uma escala ser cadastrada.
+- Escalas por grupo, data e tema; cantores e músicos separados; até oito músicas por escala.
+- Biblioteca musical reutilizável com artista, compositor, tons masculino/feminino, links e temas.
+- Importação de TXT com prévia; detecta mês, grupo, semanas, pessoas e músicas, completa datas pelo dia habitual do grupo e associa títulos já existentes na biblioteca.
+- Escalas guardam cópias dos dados das músicas e histórico ao editar, mantendo repertórios antigos mesmo após atualização da biblioteca.
+
+ETAPA 9 — ADMINISTRAÇÃO DE USUÁRIOS (MANTIDA)
+O pacote também mantém administração de usuários e permissões:
+- Criar e editar usuários pelo telefone de login, definir perfil, ativar/desativar acesso e redefinir senha.
+- Senhas temporárias são aleatórias, exibidas uma única vez para o administrador e exigem troca no primeiro acesso.
+- Definir permissões gerais e permissões de leitura/criação/edição/exclusão por grupo.
+- Conceder visualização de todos os grupos, incluindo grupos criados futuramente.
+- O administrador geral é protegido; usuários com permissões delegadas não podem se conceder privilégios administrativos.
+
+ETAPA 8 — PERSISTÊNCIA (MANTIDA)
+O pacote mantém as tabelas persistentes do Supabase:
 - library_items: títulos, conteúdo, visibilidade, grupos, autoria e datas.
 - library_item_snapshots: versões anteriores gravadas automaticamente quando o item muda.
 - personal_notes: uma nota geral e notas privadas por música para cada usuário.
 - RLS aplica acesso para perfis ativos, permissões da biblioteca e associação/ações por grupo.
 
 ANTES DE PUBLICAR ESTA VERSÃO
-1. No Supabase, abra SQL Editor e execute uma vez `supabase/etapa8-persistencia.sql`.
-2. Confira que a consulta terminou com sucesso. Ela cria as tabelas novas, triggers, políticas RLS e privilégios usados pelo painel. Também concede SELECT/INSERT/UPDATE necessários ao papel server-side `service_role` nas tabelas de apoio existentes.
-3. Não conceda as tabelas do acervo a `anon`. O navegador usa a chave publicável e o token do usuário; a autorização dos registros é feita por RLS.
-4. A migration supõe que as tabelas existentes têm os contratos da Etapa 6: `profiles` (id, role, is_owner, is_active), `system_permissions` (user_id e colunas library_*, users_*, groups_*, imports_create, audit_view), `ministry_groups` (id, name, is_active) e `group_memberships` (user_id, group_id, has_access, can_view, can_create, can_edit, can_delete).
-5. Mantenha no Vercel `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida depois da criação da conta principal.
+1. No Supabase, confirme que `supabase/etapa8-persistencia.sql` já foi executado.
+2. Se ainda não foi executada, execute `supabase/etapa9-usuarios-permissoes.sql`.
+3. Execute uma vez `supabase/etapa10-escalas-repertorios.sql`. Ela cria o catálogo musical, escalas, equipes, repertórios e snapshots; também adiciona o dia habitual aos grupos e cadastra os três grupos iniciais se estiverem ausentes.
+4. Confira sucesso no SQL Editor. Não execute migrations de novo como forma de corrigir erro parcial sem antes conferir o resultado.
+5. `api/users.js` e `api/louvor.js` usam `SUPABASE_SECRET_KEY` somente no servidor. Não conceda as novas tabelas a `anon` ou `authenticated`, nem exponha essa chave ao navegador.
+6. Mantenha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida.
 
 PUBLICAÇÃO
-- Atualize `api/`, `painel-louvor/` e mantenha o diretório `supabase/etapa8-persistencia.sql` no repositório para controle de versão.
+- Atualize `api/`, `painel-louvor/` e `supabase/`; mantenha as migrations das etapas 8, 9 e 10 no repositório.
 - A página pública existente (`index.html`, `script.js` e `styles.css`) não é alterada por este pacote.
-- A tela do painel consulta as tabelas diretamente com a chave publicável e o token Supabase do usuário; RLS restringe cada operação.
+- A biblioteca antiga da Etapa 8 continua usando a chave publicável e o token do usuário, com RLS.
+- Escalas, equipes e a nova biblioteca musical passam pelo endpoint server-side `/api/louvor.js`, que valida sessão e permissões antes de acessar o banco.
 - Execute primeiro a migration no Supabase. Depois publique os arquivos na branch de produção do Vercel.
 
 MODELO DE ACESSO
@@ -25,9 +44,14 @@ MODELO DE ACESSO
 - `system_permissions.library_view/create/edit/delete` controla as operações gerais. O owner possui todas as permissões.
 - `group_memberships` limita itens compartilhados por grupo e exige `has_access` mais a ação correspondente.
 - Itens `ministry` são visíveis a perfis ativos que tenham `library_view`; itens `groups` só aparecem a membros com `can_view`; itens `private` ficam visíveis ao autor e ao owner.
+- A API do louvor confere a sessão, as permissões gerais e a autorização específica do grupo antes de cada leitura ou alteração. Usuários com visualização global veem também grupos futuros; isso não concede edição.
+- Escalas e repertórios estruturados são acessados pelo servidor com a chave secreta e não ficam disponíveis diretamente ao navegador sem autorização.
 - Snapshots seguem a visibilidade do item. Notas pessoais só podem ser lidas ou alteradas pelo próprio usuário.
 
 NOTAS
-- A biblioteca persiste título, texto livre para cifra/links/notas, visibilidade e grupos. Não há ainda entidade musical estruturada para tom, compositor, duração, letra ou arquivo de cifra.
-- Escalas e repertórios por culto, cadastro de usuários/grupos, auditoria e importação continuam sendo módulos futuros; a navegação não os apresenta como disponíveis.
-- O SQL não foi executado neste projeto Supabase e precisa ser aplicado pelo responsável. Nenhum dado de produção foi migrado ou apagado por este pacote.
+- A biblioteca antiga de notas e referências da Etapa 8 continua disponível como área complementar; a biblioteca musical estruturada da Etapa 10 concentra os dados usados nas escalas.
+- A administração de usuários não exclui permanentemente contas Auth; o acesso pode ser desativado e reativado. Grupos também são arquivados via desativação.
+- O importador associa automaticamente músicas com título equivalente; títulos novos entram na escala como pendentes e podem ser adicionados à biblioteca e completados depois. Confira sempre a prévia, principalmente solistas e artistas indicados entre parênteses.
+- O importador espera mês/ano no cabeçalho, seções `CANTORES`, `MÚSICOS`, `MÚSICAS` e títulos como `1ª SEMANA – Tema: ...`. A atribuição automática de solistas/artistas deve ser revisada na prévia.
+- Cantores e músicos são gravados como nomes da escala, sem exigir que todos tenham uma conta de login.
+- O pacote não foi conectado ao Supabase e as migrations da Etapa 10 não foram executadas. Nenhuma conta ou dado de produção foi criado, alterado ou removido por este pacote.
