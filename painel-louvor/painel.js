@@ -597,11 +597,12 @@ async function saveSongForm(event) {
 function parseRepertoireText(text) {
   const monthNames = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const normalized = normalizedText(text);
-  const month = monthNames.findIndex(name => normalized.includes(name));
-  const yearMatch = text.match(/20\d{2}/);
-  if (month < 0 || !yearMatch) throw new Error('Não encontrei mês e ano no texto. Inclua um cabeçalho como “Novembro - 2026”.');
-  const year = Number(yearMatch[0]);
   const lines = text.split(/\r?\n/);
+  const headerText = normalizedText(lines.slice(0, 8).join(' '));
+  const monthYear = new RegExp(`\\b(${monthNames.join('|')})\\b(?:\\s+de)?\\s+(20\\d{2})\\b`).exec(headerText);
+  if (!monthYear) throw new Error('Não encontrei mês e ano no cabeçalho. Inclua algo como “Escala de Novembro - 2026” nas primeiras linhas.');
+  const month = monthNames.indexOf(monthYear[1]);
+  const year = Number(monthYear[2]);
   const groups = ministryGroups.filter(group => {
     const name = normalizedText(group.name);
     const aliases = name === 'culto publico' ? ['cultos publicos', 'culto publico'] : name === 'culto de oracao' ? ['cultos de oracao', 'culto de oracao'] : name === 'ebd' ? ['ebd', 'escola biblica dominical'] : [name];
