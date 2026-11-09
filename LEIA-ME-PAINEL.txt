@@ -7,6 +7,7 @@ Esta versão completa os fluxos previstos para o ministério:
 - Ícones SVG próprios para Culto Público, Culto de Oração e EBD; grupos novos usam um ícone genérico.
 - O mês atual é gerado automaticamente pela data do acesso. Escalas anteriores aparecem em uma lista separada, somente para meses desde novembro/2026 que tenham escalas salvas; meses futuros e meses sem histórico não poluem a lista.
 - Escalas por grupo, data e tema; cantores e músicos separados; até oito músicas por escala.
+- Cada música possui um campo destacado para solista(s), aceitando um ou dois nomes; o destaque também aparece na visualização da escala. O banco já armazena esse campo, então não há nova migration.
 - Biblioteca musical reutilizável com artista, compositor, tons masculino/feminino, links e temas.
 - Importação de TXT com prévia; detecta mês, grupo, semanas, pessoas e músicas, completa datas pelo dia habitual do grupo e associa títulos já existentes na biblioteca.
 - Escalas guardam cópias dos dados das músicas e histórico ao editar, mantendo repertórios antigos mesmo após atualização da biblioteca.
