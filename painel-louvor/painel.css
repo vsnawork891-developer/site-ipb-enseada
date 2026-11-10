@@ -154,3 +154,20 @@ body.mobile-menu-open{overflow:hidden}
 .group-tile:focus-within{outline:2px solid #b8f36b88;outline-offset:2px}
 .feedback{z-index:120}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #b8f36b;outline-offset:2px}
+/* Login and first-access usability */
+.auth-art{height:78px;margin-bottom:14px}
+.auth-card{width:min(100%,470px);margin-top:6vh}
+.password-input-wrap{position:relative;width:100%}
+.password-input-wrap>input{padding-right:54px!important}
+.password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:grid;place-items:center;min-width:40px;height:38px;border:1px solid transparent;border-radius:9px;background:transparent;color:#9ba9a2;font-size:1.05rem}
+.password-toggle:hover{border-color:#39443e;background:#171e1a;color:var(--green)}
+.password-toggle[aria-pressed="true"]{color:var(--green)}
+.field-hint{margin-top:-5px;color:#87938d;font-size:.72rem}
+.login-help{margin:17px 0 0;text-align:center;color:#899590;font-size:.75rem}
+.login-feedback{margin:5px 0 0;padding:10px 12px;border:1px solid #754445;border-radius:10px;background:#2a1719;color:#ffc4bf;font-size:.8rem;line-height:1.4}
+.login-feedback[hidden]{display:none}
+#loginButton[aria-busy="true"]{cursor:wait;opacity:.78}
+#loginButton[aria-busy="true"] span[aria-hidden="true"]{display:none}
+.password-card .form-stack{margin-top:20px}
+.password-card .muted{margin-bottom:16px}
+@media(max-width:680px){.auth-card{margin-top:4vh;padding:27px 21px}.auth-art{height:72px}.brand-lockup strong{font-size:.78rem}.brand-lockup small{font-size:.68rem}}

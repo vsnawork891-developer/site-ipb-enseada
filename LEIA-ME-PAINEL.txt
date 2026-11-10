@@ -51,6 +51,14 @@ PUBLICAÇÃO
 - Escalas, equipes e a nova biblioteca musical passam pelo endpoint server-side `/api/louvor.js`, que valida sessão e permissões antes de acessar o banco.
 - Execute primeiro a migration no Supabase. Depois publique os arquivos na branch de produção do Vercel.
 
+MELHORIA DA TELA DE LOGIN
+- O telefone aceita números com DDD e é formatado visualmente enquanto é digitado; a autenticação continua usando os mesmos 10 ou 11 dígitos cadastrados.
+- Os campos de senha têm controles para mostrar/ocultar o conteúdo, também disponíveis na troca obrigatória da senha inicial.
+- Erros de autenticação aparecem junto ao formulário; o botão informa quando está validando o acesso e bloqueia envios repetidos.
+- O texto de ajuda orienta o integrante a procurar o administrador para redefinir uma senha esquecida.
+- A identidade do painel foi encurtada para “Primeira IPB Enseada” e o texto de acesso foi simplificado para telas pequenas.
+- Esta melhoria é apenas visual e de interação. Não altera autenticação, API, permissões, tabelas nem exige executar SQL novamente.
+
 MODELO DE ACESSO
 - Perfil inativo não acessa o acervo.
 - `system_permissions.library_view/create/edit/delete` controla as operações gerais. O owner possui todas as permissões.

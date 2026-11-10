@@ -16,7 +16,7 @@
     <header class="brand-header">
       <a class="brand-lockup" href="/painel-louvor/" aria-label="Painel IPB Enseada">
         <span class="brand-mark">IPB</span>
-        <span><strong>Primeira Igreja Presbiteriana na Enseada</strong><small>Ministério de Louvor</small></span>
+        <span><strong>Primeira IPB Enseada</strong><small>Ministério de Louvor</small></span>
       </a>
       <span class="access-pill"><span class="status-dot"></span> Área restrita</span>
     </header>
@@ -25,14 +25,17 @@
       <div class="auth-art" aria-hidden="true"><span class="note note-a">♪</span><span class="note note-b">♫</span><div class="sound-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       <p class="eyebrow">Organização · comunhão · música</p>
       <h1>Painel do Ministério<br><span>de Louvor</span></h1>
-      <p class="muted">Acesse escalas, repertórios e materiais do ministério.</p>
+      <p class="muted">Acesso exclusivo aos integrantes autorizados do Ministério de Louvor.</p>
       <form id="loginForm" class="form-stack">
         <label for="phone">Telefone com DDD</label>
-        <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="username" placeholder="11999999999" maxlength="11" required>
+        <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="username" placeholder="(11) 99999-9999" maxlength="16" aria-describedby="phoneHint" required>
+        <small id="phoneHint" class="field-hint">Digite o telefone cadastrado com DDD.</small>
         <label for="password">Senha</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
-        <button type="submit" class="button-primary">Entrar no painel <span aria-hidden="true">↗</span></button>
+        <div class="password-input-wrap"><input id="password" name="password" type="password" autocomplete="current-password" required><button class="password-toggle" type="button" data-password-toggle="password" aria-label="Mostrar senha" aria-pressed="false">◉</button></div>
+        <button id="loginButton" type="submit" class="button-primary"><span id="loginButtonText">Entrar no painel</span> <span aria-hidden="true">↗</span></button>
+        <p id="loginFeedback" class="login-feedback" role="alert" aria-live="polite" hidden></p>
       </form>
+      <p class="login-help">Esqueceu sua senha? Peça ao administrador do painel para redefini-la.</p>
     </section>
 
     <section class="auth-card password-card" id="changePasswordView" hidden>
@@ -41,11 +44,11 @@
       <p class="muted">Confirme a senha temporária e escolha uma senha pessoal com pelo menos 8 caracteres.</p>
       <form id="changePasswordForm" class="form-stack">
         <label for="currentPassword">Senha temporária atual</label>
-        <input id="currentPassword" type="password" autocomplete="current-password" required>
+        <div class="password-input-wrap"><input id="currentPassword" type="password" autocomplete="current-password" required><button class="password-toggle" type="button" data-password-toggle="currentPassword" aria-label="Mostrar senha temporária" aria-pressed="false">◉</button></div>
         <label for="newPassword">Nova senha</label>
-        <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required>
+        <div class="password-input-wrap"><input id="newPassword" type="password" minlength="8" autocomplete="new-password" required><button class="password-toggle" type="button" data-password-toggle="newPassword" aria-label="Mostrar nova senha" aria-pressed="false">◉</button></div>
         <label for="confirmPassword">Confirme a nova senha</label>
-        <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required>
+        <div class="password-input-wrap"><input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required><button class="password-toggle" type="button" data-password-toggle="confirmPassword" aria-label="Mostrar confirmação da senha" aria-pressed="false">◉</button></div>
         <button type="submit" class="button-primary">Salvar e continuar</button>
       </form>
     </section>

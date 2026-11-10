@@ -25,6 +25,8 @@ function showView(id) {
   views.forEach(view => { $(view).hidden = view !== id; });
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
+  const loginFeedback = $('loginFeedback');
+  if (loginFeedback) { loginFeedback.textContent = ''; loginFeedback.hidden = true; }
 }
 function closeEditor(editorId, formId = '') {
   const form = formId ? $(formId) : null;
@@ -82,6 +84,29 @@ function phoneEmail(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (!/^\d{10,11}$/.test(digits)) throw new Error('Informe o telefone com DDD, usando 10 ou 11 números.');
   return `${digits}@login.primeiraipbenseada.com.br`;
+}
+function formatPhone(digits) {
+  if (!digits) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  const area = digits.slice(0, 2);
+  const subscriber = digits.slice(2);
+  if (subscriber.length <= 4) return `(${area}) ${subscriber}`;
+  if (subscriber.length <= 8) return `(${area}) ${subscriber.slice(0, 4)}-${subscriber.slice(4)}`;
+  return `(${area}) ${subscriber.slice(0, 5)}-${subscriber.slice(5, 9)}`;
+}
+function maskPhoneInput(input) {
+  const caret = input.selectionStart ?? input.value.length;
+  const digitsBeforeCaret = input.value.slice(0, caret).replace(/\D/g, '').length;
+  const digits = input.value.replace(/\D/g, '').slice(0, 11);
+  input.value = formatPhone(digits);
+  if (document.activeElement !== input) return;
+  let position = 0;
+  let counted = 0;
+  while (position < input.value.length && counted < digitsBeforeCaret) {
+    if (/\d/.test(input.value[position])) counted++;
+    position++;
+  }
+  input.setSelectionRange(position, position);
 }
 async function parseResponse(response, fallback = 'O servidor retornou uma resposta inválida.') {
   const raw = await response.text();
@@ -892,17 +917,43 @@ async function loadProfile() {
   setupDashboard();
 }
 
+document.querySelectorAll('[data-password-toggle]').forEach(button => {
+  button.addEventListener('click', () => {
+    const input = $(button.dataset.passwordToggle);
+    if (!input) return;
+    const visible = input.type === 'password';
+    input.type = visible ? 'text' : 'password';
+    button.setAttribute('aria-pressed', String(visible));
+    const label = button.getAttribute('aria-label') || 'Mostrar senha';
+    button.setAttribute('aria-label', label.replace(/^(Mostrar|Ocultar)/, visible ? 'Ocultar' : 'Mostrar'));
+    button.textContent = visible ? '◌' : '◉';
+  });
+});
+$('phone').addEventListener('input', () => {
+  maskPhoneInput($('phone'));
+  $('loginFeedback').hidden = true;
+});
+$('password').addEventListener('input', () => { $('loginFeedback').hidden = true; });
+
 $('loginForm').addEventListener('submit', async event => {
   event.preventDefault();
-  const button = event.submitter; button.disabled = true;
+  const button = $('loginButton');
+  const label = $('loginButtonText');
+  const feedback = $('loginFeedback');
+  feedback.textContent = ''; feedback.hidden = true;
+  button.disabled = true; button.setAttribute('aria-busy', 'true'); label.textContent = 'Entrando…';
   try {
     const email = phoneEmail($('phone').value);
     const data = await supabase('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password: $('password').value }) });
     session = data; localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     await loadProfile();
   } catch (error) {
-    session = null; localStorage.removeItem(STORAGE_KEY); message(error.message);
-  } finally { button.disabled = false; }
+    session = null; localStorage.removeItem(STORAGE_KEY);
+    feedback.textContent = error.message || 'Não foi possível entrar. Confira seus dados e tente novamente.';
+    feedback.hidden = false;
+  } finally {
+    button.disabled = false; button.removeAttribute('aria-busy'); label.textContent = 'Entrar no painel';
+  }
 });
 
 $('changePasswordForm').addEventListener('submit', async event => {
