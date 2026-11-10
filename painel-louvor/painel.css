@@ -155,7 +155,7 @@ body.mobile-menu-open{overflow:hidden}
 .feedback{z-index:120}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #b8f36b;outline-offset:2px}
 /* Login and first-access usability */
-.auth-art{height:78px;margin-bottom:14px}
+.auth-art{height:100px;margin-bottom:14px}
 .auth-card{width:min(100%,470px);margin-top:6vh}
 .password-input-wrap{position:relative;width:100%}
 .password-input-wrap>input{padding-right:54px!important}
@@ -170,4 +170,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 #loginButton[aria-busy="true"] span[aria-hidden="true"]{display:none}
 .password-card .form-stack{margin-top:20px}
 .password-card .muted{margin-bottom:16px}
-@media(max-width:680px){.auth-card{margin-top:4vh;padding:27px 21px}.auth-art{height:72px}.brand-lockup strong{font-size:.78rem}.brand-lockup small{font-size:.68rem}}
+@media(max-width:680px){.auth-card{margin-top:4vh;padding:27px 21px}.auth-art{height:96px}.brand-lockup strong{font-size:.78rem}.brand-lockup small{font-size:.68rem}}
+.service-detail-footer{display:flex;justify-content:flex-start;margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.service-detail-footer button{min-height:44px}
+@media(max-width:680px){.service-detail-footer button{width:100%}}

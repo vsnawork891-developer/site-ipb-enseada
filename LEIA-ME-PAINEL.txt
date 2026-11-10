@@ -59,6 +59,14 @@ MELHORIA DA TELA DE LOGIN
 - A identidade do painel foi encurtada para “Primeira IPB Enseada” e o texto de acesso foi simplificado para telas pequenas.
 - Esta melhoria é apenas visual e de interação. Não altera autenticação, API, permissões, tabelas nem exige executar SQL novamente.
 
+IMPORTAÇÃO DE QUINTAS E EBD
+- O importador também aceita um único arquivo de texto tabulado com blocos identificados por `QUINTA` e `DOMINGO`, cada um seguido pela data no formato DD/MM/AAAA.
+- Os blocos de quinta são associados ao grupo de Culto de Oração; os de domingo, ao grupo EBD. O usuário precisa ter permissão para criar escalas nos dois grupos. O nome do grupo deve identificar Oração/Quinta ou EBD/Escola Bíblica.
+- Cada linha de dados deve manter as colunas separadas por tabulações: número opcional, cantor, músico e música. Colunas vazias são aceitas; músicas podem ficar sem tons e links para completar depois.
+- A prévia mostra o grupo, data, cantores, músicos e músicas. A importação pode gravar os dois grupos no mesmo envio, e substituições existentes continuam protegidas por confirmação e histórico.
+- Essas escalas não exigem semanas nem temas. As datas explícitas são conferidas contra o dia indicado; os domingos são direcionados à EBD para não misturar com o Culto Público.
+- A área ilustrada do login ganhou altura para evitar corte, e o detalhe do repertório agora oferece “Voltar às escalas” no topo e também no final da página.
+
 MODELO DE ACESSO
 - Perfil inativo não acessa o acervo.
 - `system_permissions.library_view/create/edit/delete` controla as operações gerais. O owner possui todas as permissões.

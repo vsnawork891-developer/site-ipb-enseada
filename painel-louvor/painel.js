@@ -579,9 +579,10 @@ function renderServiceDetail(service) {
   const nextDate = groupServices.filter(row => String(row.service_date) >= localDateKey(new Date())).map(row => String(row.service_date)).sort()[0];
   const dateState = service.service_date < localDateKey(new Date()) ? ['past', 'REALIZADA'] : service.service_date === localDateKey(new Date()) ? ['today', 'HOJE'] : service.service_date === nextDate ? ['next', 'PRÓXIMA'] : ['scheduled', 'AGENDADA'];
   const monthLabel = new Date(`${service.service_date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  $('serviceDetail').innerHTML = `<div class="service-detail-header"><div class="service-breadcrumb"><button class="text-back-button" id="serviceBackButton" type="button">← Voltar às escalas</button><span>› ${escapeHtml(selectedGroup.name)}</span><span>› ${escapeHtml(monthLabel)}</span></div><div class="service-detail-heading"><div><span class="section-kicker">${escapeHtml(selectedGroup.name.toLocaleUpperCase('pt-BR'))}</span><h3>${escapeHtml(formatServiceDate(service.service_date))}</h3><p class="service-detail-theme">Tema: <strong>${escapeHtml(service.theme || 'A definir')}</strong></p></div><div class="service-detail-actions"><span class="service-status ${dateState[0]}">${dateState[1]}</span><button class="button-outline" id="copyServiceButton" type="button">Copiar repertório</button><button class="button-outline" id="printServiceButton" type="button">Imprimir / PDF</button>${canGroup('edit', selectedGroup) ? `<button class="button-primary" id="editServiceButton" type="button">Editar escala</button>` : ''}</div></div></div><div class="service-team-grid"><section class="service-team-card singers-card"><span>👥 CANTORES</span><ul>${singers}</ul></section><section class="service-team-card musicians-card"><span>🎸 MÚSICOS</span><ul>${musicians}</ul></section></div><div class="service-repertoire-heading"><div><span class="section-kicker">REPERTÓRIO</span><h3>${service.songs.length} ${service.songs.length === 1 ? 'música' : 'músicas'}</h3></div><p>Solistas, tons e referências</p></div><div class="service-detail-songs">${songs}</div><details class="snapshot-details"><summary>Histórico de alterações (${service.snapshots.length})</summary><ol class="snapshots-list">${service.snapshots.map(row => `<li>${escapeHtml(formatDate(row.created_at))}</li>`).join('') || '<li>Nenhuma alteração anterior.</li>'}</ol></details>`;
+  $('serviceDetail').innerHTML = `<div class="service-detail-header"><div class="service-breadcrumb"><button class="text-back-button" id="serviceBackButton" type="button">← Voltar às escalas</button><span>› ${escapeHtml(selectedGroup.name)}</span><span>› ${escapeHtml(monthLabel)}</span></div><div class="service-detail-heading"><div><span class="section-kicker">${escapeHtml(selectedGroup.name.toLocaleUpperCase('pt-BR'))}</span><h3>${escapeHtml(formatServiceDate(service.service_date))}</h3><p class="service-detail-theme">Tema: <strong>${escapeHtml(service.theme || 'A definir')}</strong></p></div><div class="service-detail-actions"><span class="service-status ${dateState[0]}">${dateState[1]}</span><button class="button-outline" id="copyServiceButton" type="button">Copiar repertório</button><button class="button-outline" id="printServiceButton" type="button">Imprimir / PDF</button>${canGroup('edit', selectedGroup) ? `<button class="button-primary" id="editServiceButton" type="button">Editar escala</button>` : ''}</div></div></div><div class="service-team-grid"><section class="service-team-card singers-card"><span>👥 CANTORES</span><ul>${singers}</ul></section><section class="service-team-card musicians-card"><span>🎸 MÚSICOS</span><ul>${musicians}</ul></section></div><div class="service-repertoire-heading"><div><span class="section-kicker">REPERTÓRIO</span><h3>${service.songs.length} ${service.songs.length === 1 ? 'música' : 'músicas'}</h3></div><p>Solistas, tons e referências</p></div><div class="service-detail-songs">${songs}</div><details class="snapshot-details"><summary>Histórico de alterações (${service.snapshots.length})</summary><ol class="snapshots-list">${service.snapshots.map(row => `<li>${escapeHtml(formatDate(row.created_at))}</li>`).join('') || '<li>Nenhuma alteração anterior.</li>'}</ol></details><div class="service-detail-footer"><button class="button-quiet" id="serviceBackBottomButton" type="button">← Voltar às escalas</button></div>`;
   $('servicesList').hidden = true; $('servicesEmptyState').hidden = true; $('serviceDetail').hidden = false;
   $('serviceBackButton').addEventListener('click', () => { $('serviceDetail').hidden = true; $('servicesList').hidden = false; loadServices().catch(error => message(error.message)); });
+  $('serviceBackBottomButton').addEventListener('click', () => { $('serviceDetail').hidden = true; $('servicesList').hidden = false; loadServices().catch(error => message(error.message)); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   $('editServiceButton')?.addEventListener('click', () => openServiceEditor(service));
   $('copyServiceButton').addEventListener('click', () => copyServiceRepertoire(service).catch(error => message(error.message)));
   $('printServiceButton').addEventListener('click', () => window.print());
@@ -725,10 +726,84 @@ async function saveSongForm(event) {
   } catch (error) { message(error.message); }
   finally { button.disabled = false; }
 }
+function importGroupForDay(day) {
+  const active = ministryGroups.filter(group => group.is_active && (owner() || canGroup('create', group)));
+  const key = day === 'QUINTA' ? 'quinta' : 'domingo';
+  const preferred = active.filter(group => {
+    const name = normalizedText(group.name);
+    if (day === 'QUINTA') return name.includes('oracao') || name.includes('quinta') || group.service_weekday === 4;
+    return name === 'ebd' || name.includes('escola biblica') || name.includes('ebd');
+  });
+  const unique = [...new Map(preferred.map(group => [group.id, group])).values()];
+  if (unique.length === 1) return unique[0];
+  const expected = day === 'QUINTA' ? 'Culto de Oração (quinta-feira)' : 'EBD (domingo)';
+  if (unique.length > 1) throw new Error(`Encontrei mais de um grupo possível para ${day.toLocaleLowerCase('pt-BR')}. Renomeie os grupos para identificar claramente ${expected}.`);
+  throw new Error(`Não encontrei um grupo com permissão de criação para ${day.toLocaleLowerCase('pt-BR')}. Confira se existe ${expected} e se você pode criar escalas nele.`);
+}
+function parseTabularServiceBlocks(lines) {
+  const markers = [];
+  lines.forEach((line, index) => {
+    const match = line.trim().match(/^(QUINTA|DOMINGO)\b(?:\s+(\d{1,2}\/\d{1,2}\/20\d{2}))?\s*$/i);
+    if (match) markers.push({ index, day: match[1].toLocaleUpperCase('pt-BR'), inlineDate: match[2] || '' });
+  });
+  if (!markers.length) return null;
+  const drafts = [];
+  for (let blockIndex = 0; blockIndex < markers.length; blockIndex++) {
+    const marker = markers[blockIndex];
+    const end = markers[blockIndex + 1]?.index ?? lines.length;
+    const block = lines.slice(marker.index, end);
+    const blockText = [marker.inlineDate, ...block].join('\n');
+    const dateMatch = /\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/.exec(blockText);
+    if (!dateMatch) throw new Error(`Não encontrei a data do bloco ${marker.day.toLocaleLowerCase('pt-BR')}. Inclua a data como DD/MM/AAAA.`);
+    const [, dayText, monthText, yearText] = dateMatch;
+    const dayNumber = Number(dayText), monthNumber = Number(monthText), year = Number(yearText);
+    const date = new Date(year, monthNumber - 1, dayNumber, 12);
+    if (date.getFullYear() !== year || date.getMonth() !== monthNumber - 1 || date.getDate() !== dayNumber) throw new Error(`A data ${dateMatch[0]} não é válida.`);
+    const expectedWeekday = marker.day === 'QUINTA' ? 4 : 0;
+    if (date.getDay() !== expectedWeekday) throw new Error(`${dateMatch[0]} está marcado como ${marker.day.toLocaleLowerCase('pt-BR')}, mas cai em ${weekdayNames[date.getDay()]}. Confira o arquivo.`);
+
+    const singers = [], musicians = [], songs = [];
+    for (const original of block) {
+      const line = original.trim();
+      if (!line || /^(QUINTA|DOMINGO)\b/i.test(line) || /\b\d{1,2}\/\d{1,2}\/20\d{2}\b/.test(line)) continue;
+      const heading = normalizedText(line).replace(/:$/, '');
+      if (['cantores','musicos','musicas','louvores','escala do louvor do mes referente as quintas e domingos na ebd'].includes(heading)) continue;
+      let cells;
+      if (original.includes('\t')) {
+        cells = original.split('\t').map(value => value.trim());
+        if (cells.some(cell => ['cantores','musicos','musicas','louvores'].includes(normalizedText(cell)))) continue;
+      } else {
+        const row = line.match(/^\s*\d+\s+(.+?)\s{2,}(.+?)\s{2,}(.+?)\s*$/);
+        if (!row) continue;
+        cells = ['', row[1].trim(), row[2].trim(), row[3].trim()];
+      }
+      if (/^\d+\s*[.)-]?$/.test(cells[0] || '')) cells.shift();
+      else if (cells.length >= 4 && !cells[0]) cells.shift();
+      const singer = cells[0] || '';
+      const musician = cells[1] || '';
+      const songCell = cells.slice(2).filter(Boolean).join(' ').trim();
+      if (singer && !singers.includes(singer)) singers.push(singer);
+      if (musician && !musicians.includes(musician)) musicians.push(musician);
+      if (songCell) {
+        const artistMatch = songCell.match(/\(([^)]+)\)\s*$/);
+        const artist = artistMatch && /minist[eé]rio|banda|praise|fernandinho|morada|vineyard|avivah/i.test(artistMatch[1]) ? artistMatch[1].trim() : '';
+        const title = artist ? songCell.slice(0, artistMatch.index).trim() : songCell;
+        if (title) songs.push({ song_id: '', title_snapshot: title, artist_snapshot: artist, soloist: '', male_key_snapshot: '', female_key_snapshot: '', youtube_url_snapshot: '', chart_url_snapshot: '' });
+      }
+    }
+    const group = importGroupForDay(marker.day);
+    const iso = `${year}-${String(monthNumber).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
+    drafts.push({ group_id: group.id, service_date: iso, theme: '', singers, musicians, songs });
+  }
+  if (drafts.some(draft => draft.songs.length > 8)) throw new Error('Uma escala tem mais de oito músicas. Reduza o repertório antes de salvar.');
+  return drafts;
+}
 function parseRepertoireText(text) {
   const monthNames = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const normalized = normalizedText(text);
   const lines = text.split(/\r?\n/);
+  const tabularDrafts = parseTabularServiceBlocks(lines);
+  if (tabularDrafts) return tabularDrafts;
   const headerText = normalizedText(lines.slice(0, 8).join(' '));
   const monthYear = new RegExp(`\\b(${monthNames.join('|')})\\b(?:\\s+de)?\\s+(20\\d{2})\\b`).exec(headerText);
   if (!monthYear) throw new Error('Não encontrei mês e ano no cabeçalho. Inclua algo como “Escala de Novembro - 2026” nas primeiras linhas.');
@@ -786,34 +861,36 @@ function parseRepertoireText(text) {
 }
 function renderImportPreview() {
   importDraft = parseRepertoireText($('repertoireText').value);
-  const first = importDraft[0];
-  const [year, month] = first.service_date.slice(0, 7).split('-').map(Number);
-  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  const groupLabel = ministryGroups.find(group => group.id === first.group_id)?.name || 'Grupo selecionado';
+  const months = [...new Set(importDraft.map(draft => draft.service_date.slice(0, 7)))];
+  const monthLabels = months.map(key => { const [year, month] = key.split('-').map(Number); return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); });
+  const monthLabel = monthLabels.join(' · ');
+  const groupLabels = [...new Set(importDraft.map(draft => ministryGroups.find(group => group.id === draft.group_id)?.name || 'Grupo selecionado'))];
   const totalSongs = importDraft.reduce((total, draft) => total + draft.songs.length, 0);
-  const duplicateDates = importDraft.filter((draft, index, all) => all.findIndex(row => row.service_date === draft.service_date) !== index);
-  const warning = duplicateDates.length ? `<p class="import-warning">Há datas repetidas no texto. Revise antes de salvar.</p>` : '';
-  $('importPreview').innerHTML = `<div class="import-preview-summary"><span class="section-kicker">ETAPA 2 DE 2 · REVISE ANTES DE SALVAR</span><h4>${escapeHtml(groupLabel)} · ${escapeHtml(monthLabel)}</h4><p>${importDraft.length} escalas · ${totalSongs} músicas · datas calculadas pelo dia do culto do grupo</p>${warning}</div>${importDraft.map(draft => `<article class="import-preview-card"><h4>${escapeHtml(formatServiceDate(draft.service_date))} · ${escapeHtml(draft.theme)}</h4><p>${draft.singers.length} cantores · ${draft.musicians.length} músicos · ${draft.songs.length} músicas</p><p>${draft.songs.map(song => escapeHtml(song.title_snapshot)).join(' · ')}</p></article>`).join('')}`;
+  const duplicateDates = importDraft.filter((draft, index, all) => all.findIndex(row => row.group_id === draft.group_id && row.service_date === draft.service_date) !== index);
+  const warning = duplicateDates.length ? `<p class="import-warning">Há datas repetidas no mesmo grupo. Revise o arquivo antes de salvar.</p>` : '';
+  $('importPreview').innerHTML = `<div class="import-preview-summary"><span class="section-kicker">ETAPA 2 DE 2 · REVISE ANTES DE SALVAR</span><h4>${escapeHtml(groupLabels.join(' + '))} · ${escapeHtml(monthLabel)}</h4><p>${importDraft.length} escalas · ${totalSongs} músicas · datas e grupos identificados pelo cabeçalho de cada bloco</p>${warning}</div>${importDraft.map(draft => { const groupName = ministryGroups.find(group => group.id === draft.group_id)?.name || 'Grupo'; return `<article class="import-preview-card"><h4>${escapeHtml(groupName)} · ${escapeHtml(formatServiceDate(draft.service_date))}${draft.theme ? ` · ${escapeHtml(draft.theme)}` : ''}</h4><p><strong>Cantores:</strong> ${draft.singers.map(escapeHtml).join(', ') || 'não informados'} · <strong>Músicos:</strong> ${draft.musicians.map(escapeHtml).join(', ') || 'não informados'}</p><p><strong>Músicas (${draft.songs.length}):</strong> ${draft.songs.map(song => escapeHtml(song.title_snapshot)).join(' · ') || 'não informadas'}</p></article>`; }).join('')}`;
   $('importPreview').hidden = false; $('saveImportButton').disabled = duplicateDates.length > 0;
-  if (duplicateDates.length) message('A prévia encontrou datas repetidas. Corrija as semanas no texto antes de salvar.');
+  if (duplicateDates.length) message('A prévia encontrou datas repetidas para o mesmo grupo. Corrija o arquivo antes de salvar.');
 }
 async function saveImportDraft() {
   if (!importDraft.length) return;
   $('saveImportButton').disabled = true;
   try {
     await loadSongs();
-    const existingByDate = new Map();
-    const groupId = importDraft[0].group_id;
-    const existing = await louvorApi('services', 'GET', null, `&group_id=${encodeURIComponent(groupId)}`);
-    (existing.services || []).forEach(service => existingByDate.set(service.service_date, service));
-    const hasExisting = importDraft.some(draft => existingByDate.has(draft.service_date));
+    const existingByKey = new Map();
+    const groupIds = [...new Set(importDraft.map(draft => draft.group_id))];
+    for (const groupId of groupIds) {
+      const existing = await louvorApi('services', 'GET', null, `&group_id=${encodeURIComponent(groupId)}`);
+      (existing.services || []).forEach(service => existingByKey.set(`${groupId}:${service.service_date}`, service));
+    }
+    const hasExisting = importDraft.some(draft => existingByKey.has(`${draft.group_id}:${draft.service_date}`));
     if (hasExisting && !window.confirm('Há datas que já possuem escala. Deseja substituir os dados dessas datas? O sistema guardará um histórico da versão anterior.')) return;
     for (const draft of importDraft) {
       draft.songs = draft.songs.map(song => {
         const found = songCatalog.find(item => normalizedText(item.title) === normalizedText(song.title_snapshot));
         return found ? { ...song, song_id: found.id, artist_snapshot: song.artist_snapshot || found.artist, male_key_snapshot: found.male_key, female_key_snapshot: found.female_key, youtube_url_snapshot: found.youtube_url, chart_url_snapshot: found.chart_url } : song;
       });
-      const old = existingByDate.get(draft.service_date);
+      const old = existingByKey.get(`${draft.group_id}:${draft.service_date}`);
       await louvorApi('service', old ? 'PATCH' : 'POST', { ...draft, ...(old ? { id: old.id } : {}), people: [...draft.singers.map(name => ({ role: 'singer', name })), ...draft.musicians.map(name => ({ role: 'musician', name }))] });
     }
     const importedCount = importDraft.length;
