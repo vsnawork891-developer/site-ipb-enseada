@@ -110,7 +110,16 @@ module.exports = async (req, res) => {
       if (req.method === 'GET') {
         if (!actor.owner && !actor.allGroupsView && !SYSTEM_KEYS.filter(key => key.startsWith('groups_')).some(key => actor.permissions[key] === true) && !actor.memberships.some(row => row.can_view)) throw Object.assign(new Error('Você não tem permissão para consultar grupos.'), { status: 403 });
         const groups = await rest('ministry_groups?select=id,name,is_active,service_weekday&order=name.asc');
-        return send(res, 200, { groups: groups.filter(group => groupAllowed(actor, group.id, 'view')) });
+        const visibleGroups = groups.filter(group => groupAllowed(actor, group.id, 'view'));
+        const activeIds = visibleGroups.filter(group => group.is_active).map(group => group.id);
+        let upcoming = [];
+        if (activeIds.length) {
+          const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+          upcoming = await rest(`worship_services?select=id,group_id,service_date,theme&group_id=in.(${activeIds.join(',')})&service_date=gte.${today}&order=service_date.asc`);
+        }
+        const nextByGroup = new Map();
+        for (const service of upcoming) if (!nextByGroup.has(service.group_id)) nextByGroup.set(service.group_id, service);
+        return send(res, 200, { groups: visibleGroups.map(group => ({ ...group, next_service: nextByGroup.get(group.id) || null })) });
       }
       const body = req.body || {};
       if (req.method === 'POST') {

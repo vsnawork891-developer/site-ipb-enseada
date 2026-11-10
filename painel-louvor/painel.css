@@ -30,3 +30,127 @@
 .soloist-highlight div{display:grid;gap:2px}
 .soloist-highlight small{font-size:.6rem;letter-spacing:.13em;font-weight:800;color:var(--green)}
 .soloist-highlight strong{font-size:.94rem;color:#f1f8e9;overflow-wrap:anywhere}
+/* UX pass: focused dialogs, clear states, and responsive navigation */
+.topbar-heading{display:flex;align-items:center;gap:11px}
+.mobile-menu-button,.mobile-menu-close,.mobile-menu-backdrop{display:none}
+.group-next-service{display:grid;gap:4px;margin-top:16px;padding:10px 11px;border:1px solid #34413b;border-radius:10px;background:#0e1412}
+.group-next-service span{font-size:.6rem;font-weight:800;letter-spacing:.12em;color:var(--cyan)}
+.group-next-service strong{font-size:.79rem;line-height:1.35;color:#e0e8e3}
+.service-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.service-status{display:inline-flex;align-items:center;justify-content:center;min-height:25px;padding:5px 10px;border-radius:999px;font-size:.61rem;font-weight:850;letter-spacing:.07em;white-space:nowrap}
+.service-status.past{background:#29312e;color:#aab4af}
+.service-status.today{background:#b8f36b;color:#17200e;box-shadow:0 0 20px #b8f36b30}
+.service-status.next{background:#1b2c1d;border:1px solid #94cf61;color:#c8fa96}
+.service-status.scheduled{background:#17282a;border:1px solid #315458;color:#8be5e8}
+.service-status.prepare{background:#171b1c;border:1px dashed #4a5550;color:#b1bbb6}
+.service-status.empty-past{background:#1c2020;color:#828b86}
+.service-past{opacity:.72;filter:saturate(.55)}
+.service-today{border-color:var(--green)!important;box-shadow:0 0 0 1px #b8f36b30,0 12px 35px #b8f36b0c}
+.service-next{border-color:#789f4d!important;background:linear-gradient(145deg,#172019,#111518 72%)!important}
+.service-scheduled{border-color:#2f4647!important}
+.service-card-hint{font-size:.73rem!important;color:#8d9892!important}
+.service-detail{padding:24px;background:linear-gradient(145deg,#121819,#0e1213);border:1px solid #34413d;border-radius:19px}
+.service-detail-header{display:grid;gap:18px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.service-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#82908a;font-size:.72rem}
+.text-back-button{padding:0;border:0;background:none;color:var(--cyan);font:inherit;font-weight:750}
+.service-detail-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.service-detail-heading h3{margin:5px 0 7px;font-size:clamp(1.4rem,3vw,2rem);line-height:1.2;color:#f1f5f2}
+.service-detail-theme{margin:0;color:#aab5af;font-size:.92rem}
+.service-detail-theme strong{color:#e0e9e3}
+.service-detail-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.service-team-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin:21px 0 27px}
+.service-team-card{padding:16px 18px;border:1px solid #2e3935;border-radius:14px;background:#111718}
+.service-team-card>span{font-size:.67rem;font-weight:850;letter-spacing:.12em}
+.singers-card>span{color:#85e5db}.musicians-card>span{color:#d7bbff}
+.service-team-card ul{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0 0;padding:0;list-style:none}
+.service-team-card li{padding:6px 10px;border:1px solid #34413d;border-radius:999px;background:#18201e;color:#dce5e0;font-size:.76rem}
+.service-repertoire-heading{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:13px}
+.service-repertoire-heading h3{margin:4px 0 0;color:#eef4f0;font-size:1.25rem}
+.service-repertoire-heading>p{margin:0;color:#84918b;font-size:.74rem}
+.service-detail-songs{display:grid;gap:11px}
+.service-detail-song{padding:16px;border:1px solid #2e3935;border-radius:14px;background:#111718}
+.song-detail-title{display:flex;align-items:center;gap:12px}
+.song-number{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:11px;background:#b8f36b;color:#18200f;font-weight:900}
+.song-detail-title h4{margin:0!important;color:#edf4ef!important;font-size:1rem;letter-spacing:0!important}
+.song-detail-title p{margin:4px 0 0;color:#84918b;font-size:.76rem}
+.soloist-highlight{margin:12px 0 10px}
+.song-detail-meta{display:flex;gap:8px;flex-wrap:wrap;margin:11px 0}
+.song-key{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #303b37;border-radius:9px;background:#0d1213;color:#93a099;font-size:.68rem}
+.song-key strong{color:#edf4ef;font-size:.76rem}
+.song-detail-links,.song-catalog-resources{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.song-resource-link{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 13px;border:1px solid #3d7c87;border-radius:10px;background:#142328;color:#8be5e8!important;text-decoration:none;font-size:.76rem;font-weight:750}
+.song-resource-link:hover{background:#1b3438;border-color:#69bfc5}
+.song-resource-pending{display:inline-flex;align-items:center;min-height:34px;padding:7px 10px;border:1px dashed #655338;border-radius:9px;color:#d4b47e;font-size:.68rem}
+.no-soloist{margin:10px 0;color:#b39463;font-size:.72rem}
+.empty-repertoire{padding:20px;color:var(--muted)}
+.song-library-toolbar{align-items:stretch}
+.song-library-toolbar .filter-box{display:grid;align-items:stretch;gap:3px}
+.song-library-toolbar .filter-box select{min-width:130px}
+.song-catalog-card{padding:18px;border-left:4px solid var(--green)}
+.song-catalog-card.song-incomplete{border-left-color:#eab56c}
+.song-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.song-card-heading h3{line-height:1.25}
+.song-card-heading p{margin:5px 0 0;color:#899590;font-size:.77rem}
+.song-completeness{flex:none;padding:5px 8px;border-radius:999px;font-size:.58rem;font-weight:850;letter-spacing:.05em;text-transform:uppercase}
+.song-completeness.complete{background:#1a2b1d;color:#b8f36b}
+.song-completeness.pending{background:#392b1c;color:#f2c37c}
+.song-theme-list{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.song-theme-chip{padding:4px 8px;border:1px solid #31504b;border-radius:999px;background:#172321;color:#99ded6;font-size:.61rem;text-transform:uppercase;letter-spacing:.04em}
+.song-key-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.song-key-value{display:grid;gap:2px;padding:8px 9px;border:1px solid #2b3934;border-radius:9px;background:#0c1112}
+.song-key-value small{color:#7f8c85;font-size:.57rem;text-transform:uppercase;letter-spacing:.06em}
+.song-key-value strong{color:#eaf1ec;font-size:.74rem}
+.song-key-value.pending strong{color:#eab56c}
+.song-missing-hint{margin:8px 0 0!important;color:#d3b176!important;font-size:.67rem!important}
+.song-catalog-resources{margin:11px 0}
+.user-list-toolbar{margin:16px 0}
+.permission-presets{display:flex;gap:7px;flex-wrap:wrap;margin:5px 0 12px}
+.permission-presets button{font-size:.68rem;padding:7px 9px}
+/* Editors become focused dialogs; the prior screen is dimmed and cannot compete. */
+body.modal-open{overflow:hidden}
+body.modal-open::before{content:"";position:fixed;inset:0;z-index:100;background:#020504c9;backdrop-filter:blur(5px)}
+.editor-card:not([hidden]){position:fixed;z-index:101;left:50%;top:50%;transform:translate(-50%,-50%);width:min(920px,calc(100vw - 40px));max-height:min(90dvh,900px);overflow:auto;margin:0;border-color:#4a5b51;box-shadow:0 30px 100px #000c}
+.editor-card:not([hidden]) .editor-heading{position:sticky;top:-20px;z-index:4;margin:-20px -20px 16px;padding:18px 20px;background:#151a1d;border-bottom:1px solid #343b40}
+.editor-card:not([hidden]) .editor-actions{position:sticky;bottom:-20px;z-index:3;padding:12px 0;background:linear-gradient(180deg,#101315dd,#101315 35%)}
+.mobile-menu-close{width:100%;margin:3px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#151b1c;color:#c8fa96;text-align:left;font-weight:700}
+@media(max-width:760px){
+ .dashboard{display:block}.sidebar{position:fixed;z-index:111;left:0;top:0;bottom:0;width:min(320px,88vw);height:100dvh;min-height:0;margin:0;padding:18px 14px;border-radius:0 18px 18px 0;background:#101718;transform:translateX(-105%);transition:transform .22s ease;overflow:hidden}
+ body.mobile-menu-open .sidebar{transform:translateX(0)}
+ .sidebar nav{display:grid;gap:7px;overflow-y:auto;max-height:calc(100dvh - 190px);overscroll-behavior:contain}
+ .mobile-menu-backdrop{display:block;position:fixed;z-index:110;inset:0;border:0;background:#000b;opacity:0;pointer-events:none;transition:opacity .2s}
+ body.mobile-menu-open .mobile-menu-backdrop{opacity:1;pointer-events:auto}
+ .mobile-menu-close{display:block}.sidebar-title{padding:5px 7px 18px}.sidebar-bottom{margin-top:auto}
+ .mobile-menu-button{display:grid;place-items:center;width:42px;height:42px;flex:none;border:1px solid var(--line);border-radius:12px;background:#111718;color:var(--green);font-size:1.1rem}
+ .topbar{align-items:center}.topbar-heading{min-width:0}.topbar h1{font-size:1.28rem}.topbar .eyebrow{font-size:.58rem}
+ .service-detail{padding:15px}.service-detail-heading{align-items:flex-start;flex-direction:column}.service-detail-actions{justify-content:flex-start;width:100%}.service-detail-actions button{flex:1}.service-team-grid{grid-template-columns:1fr;gap:9px}.service-repertoire-heading{align-items:flex-start;flex-direction:column}.service-detail-song{padding:13px}.song-library-toolbar .search-box{flex-basis:100%}.song-library-toolbar .filter-box{flex:1}.song-library-toolbar .filter-box select{width:100%;min-width:0}.song-library-toolbar .count-pill{width:100%;justify-content:center}
+ .editor-card:not([hidden]){inset:0;width:100vw;height:100dvh;max-height:none;left:0;top:0;transform:none;border-radius:0;padding:16px 15px 100px;overflow:auto}
+ .editor-card:not([hidden]) .editor-heading{top:-16px;margin:-16px -15px 14px;padding:14px 15px}
+ .editor-card:not([hidden]) .editor-actions{bottom:-15px;flex-wrap:wrap}
+ .editor-card:not([hidden]) .editor-actions>*{flex:1}
+ .permission-presets{display:grid;grid-template-columns:1fr}.permission-presets button{text-align:left}
+}
+@media(max-width:420px){.access-pill{display:none}.topbar .button-quiet{padding:8px 10px;font-size:.75rem}.service-detail-actions .service-status{width:100%;justify-content:center}.song-key-grid{grid-template-columns:1fr 1fr}.group-tile{padding:17px}}
+@media print{
+ body *{visibility:hidden!important}
+ #serviceDetail:not([hidden]),#serviceDetail:not([hidden]) *{visibility:visible!important}
+ #serviceDetail:not([hidden]){position:absolute;inset:0;width:100%;padding:0;border:0;border-radius:0;background:#fff;color:#111;box-shadow:none}
+ #serviceDetail .service-detail-actions,#serviceDetail .service-breadcrumb,#serviceDetail .snapshot-details{display:none!important}
+ #serviceDetail .service-detail-heading h3,#serviceDetail .service-repertoire-heading h3,#serviceDetail .song-detail-title h4{color:#111!important}
+ #serviceDetail .service-detail-theme,#serviceDetail .service-detail-theme strong,#serviceDetail .song-detail-title p,#serviceDetail .song-key,#serviceDetail .song-key strong,#serviceDetail .service-team-card li{color:#222!important}
+ #serviceDetail .service-team-card,#serviceDetail .service-detail-song,#serviceDetail .song-key{background:#fff;border-color:#aaa;break-inside:avoid}
+ #serviceDetail .song-resource-link{background:#fff;color:#111!important;border-color:#777;text-decoration:underline}
+ #serviceDetail .service-status{border:1px solid #777;background:#fff;color:#111}
+}
+.song-key.pending strong{color:#eab56c}
+.import-preview-summary{padding:15px 17px;border:1px solid #4a6550;border-radius:12px;background:#142019}
+.import-preview-summary h4{margin:5px 0 4px;color:#eff5ed;font-size:1rem;text-transform:capitalize}
+.import-preview-summary p{margin:0;color:#aab7ad;font-size:.76rem}
+.import-warning{margin-top:8px!important;color:#f2c37c!important;font-weight:700}
+.import-preview-card{border-left:3px solid var(--cyan)}
+.usersNoResults{margin-top:14px}
+body.mobile-menu-open{overflow:hidden}
+.group-open-button{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:12px;padding:10px 12px;border:1px solid #3d7c87;border-radius:10px;background:#142328;color:#8be5e8;font-size:.77rem;font-weight:800}
+.group-open-button:hover{background:#1b3438;border-color:#69bfc5}
+.group-tile:focus-within{outline:2px solid #b8f36b88;outline-offset:2px}
+.feedback{z-index:120}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #b8f36b;outline-offset:2px}

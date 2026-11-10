@@ -142,7 +142,7 @@ module.exports = async (req, res) => {
       try {
         const authUser = await authAdmin('/users', 'POST', { email, password, email_confirm: true, user_metadata: { full_name: fullName, phone } });
         userId = authUser.id;
-        const role = ['member', 'leader', 'admin'].includes(body.role) ? body.role : 'member';
+        const role = ['member', 'admin'].includes(body.role) ? body.role : 'member';
         await rest('profiles', 'POST', { id: userId, full_name: fullName, phone, role, is_owner: false, is_active: true, must_change_password: true, all_groups_access: bool(body.all_groups_access) });
         const memberships = groupRows(requestedGroupRows, selectedGroups, userId, actor.owner);
         if (memberships.length) await rest('group_memberships', 'POST', memberships);
@@ -172,7 +172,7 @@ module.exports = async (req, res) => {
     const collision = await rest(`profiles?select=id&phone=eq.${encodeURIComponent(phone)}&id=neq.${encodeURIComponent(target)}&limit=1`);
     if (collision.length) return send(res, 409, { error: 'Outro usuário já utiliza este telefone.' });
     if (!actor.owner && body.role === 'admin') return send(res, 403, { error: 'Somente o administrador geral pode atribuir o perfil administrador.' });
-    const role = actor.owner ? (['member', 'leader', 'admin'].includes(body.role) ? body.role : 'member') : existing[0].role;
+    const role = actor.owner ? (['member', 'admin'].includes(body.role) ? body.role : 'member') : existing[0].role;
     const requestedGroupRows = Array.isArray(body.group_permissions) ? body.group_permissions : (body.groups || []).map(group_id => ({ group_id, can_view: true }));
     const selectedGroups = actor.owner ? await ensureAssignableGroups(actor, requestedGroupRows.map(row => row.group_id), body.all_groups_access === true) : [];
     await authAdmin(`/users/${encodeURIComponent(target)}`, 'PUT', { email: `${phone}@login.primeiraipbenseada.com.br`, email_confirm: true, user_metadata: { full_name: fullName, phone } });

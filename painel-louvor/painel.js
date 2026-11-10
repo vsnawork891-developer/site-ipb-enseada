@@ -13,6 +13,7 @@ let managedGroups = [];
 let ministryGroups = [];
 let songCatalog = [];
 let groupServices = [];
+let userSearchState = '';
 let selectedGroup = null;
 let importDraft = [];
 let returnToServiceEditor = false;
@@ -25,6 +26,38 @@ function showView(id) {
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
 }
+function closeEditor(editorId, formId = '') {
+  const form = formId ? $(formId) : null;
+  const importHasContent = editorId === 'importWrap' && Boolean($('repertoireText').value.trim());
+  if ((form?.dataset.dirty === 'true' || importHasContent) && !window.confirm('Há alterações ainda não salvas. Deseja descartá-las?')) return;
+  $(editorId).hidden = true;
+}
+function setupModalEditors() {
+  document.querySelectorAll('.editor-card form').forEach(form => {
+    form.dataset.dirty = 'false';
+    form.addEventListener('input', () => { form.dataset.dirty = 'true'; });
+    form.addEventListener('change', () => { form.dataset.dirty = 'true'; });
+    form.addEventListener('click', event => { if (event.target.closest('[data-remove-song], #addCatalogSongButton, #newSongFromServiceButton')) form.dataset.dirty = 'true'; });
+  });
+  const labels = { groupFormWrap: 'groupFormTitle', importWrap: 'importDialogTitle', serviceEditorWrap: 'serviceEditorTitle', songFormWrap: 'songFormTitle', itemFormWrap: 'itemFormTitle', userFormWrap: 'userFormTitle' };
+  let activeModal = null;
+  const observer = new MutationObserver(() => {
+    const visible = [...document.querySelectorAll('.editor-card')].filter(editor => !editor.hidden && editor.closest('[hidden]') === null);
+    const current = visible.at(-1) || null;
+    document.body.classList.toggle('modal-open', Boolean(current));
+    if (current) {
+      current.setAttribute('role', 'dialog'); current.setAttribute('aria-modal', 'true');
+      if (labels[current.id]) current.setAttribute('aria-labelledby', labels[current.id]);
+      if (current !== activeModal) {
+        activeModal = current;
+        requestAnimationFrame(() => current.querySelector('input:not([type="hidden"]),select,textarea,button')?.focus({ preventScroll: true }));
+      }
+    } else activeModal = null;
+  });
+  observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+}
+function openMobileMenu() { document.body.classList.add('mobile-menu-open'); $('mobileMenuButton').setAttribute('aria-expanded', 'true'); }
+function closeMobileMenu() { document.body.classList.remove('mobile-menu-open'); $('mobileMenuButton').setAttribute('aria-expanded', 'false'); }
 function message(text, success = false) {
   $('feedback').textContent = text;
   $('feedback').className = success ? 'feedback success' : 'feedback';
@@ -144,6 +177,7 @@ function openItem(item = null) {
   renderGroups(item?.group_ids || []);
   $('groupPicker').hidden = $('itemVisibility').value !== 'groups';
   $('itemFormTitle').textContent = item ? 'Editar repertório' : 'Novo repertório';
+  $('itemForm').dataset.dirty = 'false';
   $('itemFormWrap').hidden = false;
   $('itemFormWrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -234,7 +268,7 @@ async function saveGeneralNotes() {
   finally { button.disabled = false; }
 }
 const permissionLabels = {
-  library_view: 'Consultar biblioteca', library_create: 'Criar repertórios', library_edit: 'Editar repertórios', library_delete: 'Excluir repertórios',
+  library_view: 'Consultar biblioteca musical', library_create: 'Cadastrar músicas e repertórios', library_edit: 'Editar músicas e repertórios', library_delete: 'Excluir músicas e repertórios',
   users_view: 'Consultar usuários', users_create: 'Criar usuários', users_edit: 'Editar usuários e redefinir senhas', users_delete: 'Desativar usuários',
   groups_view: 'Consultar grupos', groups_create: 'Criar grupos', groups_edit: 'Editar grupos', groups_delete: 'Desativar grupos',
   imports_create: 'Importar dados', audit_view: 'Consultar auditoria'
@@ -260,11 +294,16 @@ function renderSystemPermissions(selected = {}) {
 function renderUsers() {
   const list = $('usersList');
   list.replaceChildren();
+  const query = normalizedText($('userSearch').value);
+  const status = $('userStatusFilter').value;
+  const visibleUsers = managedUsers.filter(user => (!query || normalizedText(`${user.full_name} ${user.phone}`).includes(query)) && (status === 'all' || (status === 'active' ? user.is_active : !user.is_active)));
+  $('userCount').textContent = `${visibleUsers.length} de ${managedUsers.length} ${managedUsers.length === 1 ? 'usuário' : 'usuários'}`;
   $('usersEmptyState').hidden = managedUsers.length > 0;
+  $('usersNoResults').hidden = managedUsers.length === 0 || visibleUsers.length > 0;
   $('newUserButton').hidden = !canManageUsers('create');
-  managedUsers.forEach(user => {
+  visibleUsers.forEach(user => {
     const groupNames = user.all_groups_access ? 'Todos os grupos' : (user.groupPermissions || []).map(row => managedGroups.find(group => group.id === row.group_id)?.name).filter(Boolean).join(', ');
-    const badges = [user.is_owner ? 'Administrador geral' : (user.role === 'admin' ? 'Administrador' : user.role === 'leader' ? 'Líder' : 'Integrante'), user.is_active ? 'Ativo' : 'Inativo', groupNames || 'Sem grupos'].map((label, index) => `<span class="user-badge ${index === 1 && !user.is_active ? 'inactive' : ''}">${escapeHtml(label)}</span>`).join('');
+    const badges = [user.is_owner ? 'Administrador geral' : (user.role === 'admin' ? 'Administrador' : 'Integrante'), user.is_active ? 'Ativo' : 'Inativo', groupNames || 'Sem grupos'].map((label, index) => `<span class="user-badge ${index === 1 && !user.is_active ? 'inactive' : ''}">${escapeHtml(label)}</span>`).join('');
     const actions = user.is_owner ? '' : `${canManageUsers('edit') ? `<button class="button-outline" data-user-action="edit" data-id="${escapeHtml(user.id)}" type="button">Editar</button><button class="button-outline" data-user-action="reset" data-id="${escapeHtml(user.id)}" type="button">Nova senha temporária</button>` : ''}${canManageUsers('delete') ? `<button class="button-quiet" data-user-action="toggle" data-active="${user.is_active ? 'true' : 'false'}" data-id="${escapeHtml(user.id)}" type="button">${user.is_active ? 'Desativar' : 'Reativar'}</button>` : ''}`;
     const card = document.createElement('article');
     card.className = 'user-card';
@@ -290,10 +329,26 @@ function openUserForm(user = null) {
   renderUserGroups(user?.groupPermissions || []);
   renderSystemPermissions(user?.permissions || {});
   $('userFormTitle').textContent = user ? 'Editar usuário' : 'Novo usuário';
+  $('userForm').dataset.dirty = 'false';
+  $('presetAllGroupsViewer').hidden = !owner();
+  $('presetPrayerEbdViewer').hidden = !owner();
+  $('clearGroupPermissions').hidden = !owner();
   $('userFormWrap').hidden = false;
   $('temporaryPasswordResult').hidden = true;
   if (!owner()) { $('userRole').disabled = true; $('allGroupsAccess').disabled = true; }
   $('userFormWrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function applyGroupPreset(preset) {
+  $('allGroupsAccess').checked = false;
+  document.querySelectorAll('#userGroupPermissions input[data-group-permission]').forEach(input => { input.checked = false; });
+  if (preset === 'all') $('allGroupsAccess').checked = true;
+  if (preset === 'prayer-ebd') {
+    managedGroups.filter(group => /oracao|ebd|escola biblica/i.test(normalizedText(group.name))).forEach(group => {
+      const input = document.querySelector(`#userGroupPermissions input[data-group-id="${CSS.escape(group.id)}"][data-group-permission="can_view"]`);
+      if (input) input.checked = true;
+    });
+  }
+  $('userForm').dataset.dirty = 'true';
 }
 function selectedGroupPermissions() {
   return managedGroups.filter(group => group.is_active).map(group => {
@@ -380,9 +435,12 @@ function renderGroupTiles() {
     tile.dataset.groupId = group.id;
     const groupKey = normalizedText(group.name);
     const iconFile = groupKey.includes('ebd') || groupKey.includes('escola biblica') ? 'ebd.svg' : groupKey.includes('oracao') ? 'culto-oracao.svg' : groupKey.includes('publico') ? 'culto-publico.svg' : 'grupo-generico.svg';
-    tile.innerHTML = `<div class="group-tile-heading"><img class="group-symbol" src="/images/painel/${iconFile}" alt="" aria-hidden="true"><div><h3>${escapeHtml(group.name)}</h3><p>${escapeHtml(weekdayNames[group.service_weekday] || 'Dia a definir')} · ${access?.can_create || access?.can_edit ? 'Escalas e repertórios do grupo' : 'Consulte as escalas e repertórios'}</p></div></div><div class="tile-actions">${canGroupModule('edit') ? `<button class="button-outline" data-group-action="edit" type="button">Editar</button>` : ''}${canGroupModule('delete') ? `<button class="button-quiet" data-group-action="deactivate" type="button">Desativar</button>` : ''}</div>`;
+    const next = group.next_service;
+    const nextLabel = next ? `${new Date(`${next.service_date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} · ${next.theme || 'Tema a definir'}` : 'Nenhuma escala futura cadastrada';
+    tile.innerHTML = `<div class="group-tile-heading"><img class="group-symbol" src="/images/painel/${iconFile}" alt="" aria-hidden="true"><div><h3>${escapeHtml(group.name)}</h3><p>${escapeHtml(weekdayNames[group.service_weekday] || 'Dia a definir')}</p></div></div><div class="group-next-service"><span>PRÓXIMA ESCALA</span><strong>${escapeHtml(nextLabel)}</strong></div><button class="group-open-button" data-open-group type="button">Abrir repertórios <span aria-hidden="true">→</span></button><div class="tile-actions">${canGroupModule('edit') ? `<button class="button-outline" data-group-action="edit" type="button">Editar grupo</button>` : ''}${canGroupModule('delete') ? `<button class="button-quiet" data-group-action="deactivate" type="button">Desativar</button>` : ''}</div>`;
     tile.addEventListener('click', event => { if (!event.target.closest('button')) openGroup(group); });
-    tile.querySelectorAll('button').forEach(button => button.addEventListener('click', event => { event.stopPropagation(); handleGroupAction(group, button.dataset.groupAction); }));
+    tile.querySelector('[data-open-group]').addEventListener('click', () => openGroup(group));
+    tile.querySelectorAll('[data-group-action]').forEach(button => button.addEventListener('click', event => { event.stopPropagation(); handleGroupAction(group, button.dataset.groupAction); }));
     $('groupsList').append(tile);
   });
 }
@@ -395,30 +453,25 @@ async function loadGroups() {
 async function handleGroupAction(group, action) {
   try {
     if (action === 'edit') {
-      const name = window.prompt('Nome do grupo:', group.name);
-      if (!name || !name.trim()) return;
-      const weekdayText = window.prompt(`Dia habitual do culto: ${weekdayNames.map((day, index) => `${index}=${day}`).join(', ')}`, String(group.service_weekday ?? 0));
-      if (weekdayText === null) return;
-      const weekday = Number(weekdayText);
-      if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) return message('Informe um número de 0 a 6 para o dia da semana.');
-      if (name.trim() === group.name && weekday === group.service_weekday) return;
-      await louvorApi('groups', 'PATCH', { id: group.id, name: name.trim(), service_weekday: weekday });
-      await loadGroups(); message('Grupo atualizado.', true);
+      openGroupForm(group);
     } else if (action === 'deactivate' && window.confirm(`Desativar o grupo ${group.name}? As escalas antigas serão preservadas.`)) {
       await louvorApi('groups', 'PATCH', { id: group.id, is_active: false });
       await loadGroups(); message('Grupo desativado.', true);
     }
   } catch (error) { message(error.message); }
 }
-async function createGroup() {
-  const name = window.prompt('Nome do novo grupo:');
-  if (!name || !name.trim()) return;
-  const weekdayText = window.prompt(`Dia habitual do culto: ${weekdayNames.map((day, index) => `${index}=${day}`).join(', ')}`, '0');
-  if (weekdayText === null) return;
-  const weekday = Number(weekdayText);
-  if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) return message('Informe um número de 0 a 6 para o dia da semana.');
-  try { await louvorApi('groups', 'POST', { name: name.trim(), service_weekday: weekday }); await loadGroups(); message('Grupo criado. Configure os acessos na administração de usuários.', true); }
-  catch (error) { message(error.message); }
+function openGroupForm(group = null) {
+  $('groupForm').reset(); $('groupId').value = group?.id || ''; $('groupName').value = group?.name || ''; $('groupWeekday').value = String(group?.service_weekday ?? 0);
+  $('groupFormTitle').textContent = group ? 'Editar grupo' : 'Novo grupo'; $('groupForm').dataset.dirty = 'false'; $('groupFormWrap').hidden = false;
+}
+async function saveGroupForm(event) {
+  event.preventDefault();
+  const id = $('groupId').value; const button = $('groupForm').querySelector('button[type="submit"]'); button.disabled = true;
+  try {
+    await louvorApi('groups', id ? 'PATCH' : 'POST', { ...(id ? { id } : {}), name: $('groupName').value.trim(), service_weekday: Number($('groupWeekday').value) });
+    $('groupFormWrap').hidden = true; await loadGroups(); message(id ? 'Grupo atualizado.' : 'Grupo criado. Configure os acessos na administração de usuários.', true);
+  } catch (error) { message(error.message); }
+  finally { button.disabled = false; }
 }
 function monthKey(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }
 function fillMonthOptions(services = []) {
@@ -462,12 +515,17 @@ function renderServices(allServices) {
   $('servicesEmptyState').querySelector('h3').textContent = isCurrentMonth ? 'Nenhuma escala neste mês' : 'Nenhuma escala anterior neste período';
   $('servicesEmptyState').querySelector('p').textContent = isCurrentMonth ? 'Adicione uma escala ou importe o arquivo mensal.' : 'Este grupo ainda não tem escalas salvas neste mês.';
   $('servicesList').replaceChildren(); $('servicesEmptyState').hidden = dates.length > 0;
+  const today = localDateKey(new Date());
+  const nextScheduled = allServices.filter(service => String(service.service_date) >= today).map(service => String(service.service_date)).sort()[0] || '';
   dates.forEach(date => {
     const service = existingByDate.get(date);
     const card = document.createElement('article'); card.className = 'service-tile';
     const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const themeLabel = service?.theme || 'Tema a definir';
-    card.innerHTML = `<span class="service-date">${escapeHtml(formatServiceDate(date))}</span><h3>Repertório · ${escapeHtml(dateLabel)}</h3><p class="theme">Tema: ${escapeHtml(themeLabel)}</p><p>${service ? 'Escala cadastrada · clique para consultar' : (canGroup('create') ? 'Clique para preparar esta escala' : 'Escala ainda não publicada')}</p>`;
+    const isPast = date < today;
+    const status = isPast ? (service ? ['past', 'REALIZADA'] : ['empty-past', 'SEM ESCALA']) : date === today ? ['today', 'HOJE'] : service && date === nextScheduled ? ['next', 'PRÓXIMA'] : service ? ['scheduled', 'AGENDADA'] : ['prepare', 'A PREPARAR'];
+    card.classList.add(`service-${status[0]}`);
+    card.innerHTML = `<div class="service-card-top"><span class="service-date">${escapeHtml(formatServiceDate(date))}</span><span class="service-status ${status[0]}">${status[1]}</span></div><h3>Repertório · ${escapeHtml(dateLabel)}</h3><p class="theme">Tema: ${escapeHtml(themeLabel)}</p><p class="service-card-hint">${service ? 'Toque para consultar a escala' : (isPast ? 'Não foi registrada uma escala para esta data' : canGroup('create') ? 'Toque para preparar esta escala' : 'Escala ainda não publicada')}</p>`;
     card.addEventListener('click', () => service ? openService(service.id) : (isCurrentMonth && canGroup('create') ? openServiceEditor(null, { service_date: date }) : null));
     $('servicesList').append(card);
   });
@@ -478,6 +536,7 @@ function defaultServiceDate(group) {
   date.setDate(date.getDate() + ((target - date.getDay() + 7) % 7));
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
+function localDateKey(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 async function openService(id) {
   try {
     const result = await louvorApi('service', 'GET', null, `&id=${encodeURIComponent(id)}`);
@@ -488,11 +547,31 @@ function renderServiceDetail(service) {
   currentService = service;
   const singers = service.people.filter(person => person.role === 'singer').map(person => `<li>${escapeHtml(person.name)}</li>`).join('') || '<li>A definir</li>';
   const musicians = service.people.filter(person => person.role === 'musician').map(person => `<li>${escapeHtml(person.name)}</li>`).join('') || '<li>A definir</li>';
-  const songs = service.songs.map((song, index) => { const youtube = safeExternalUrl(song.youtube_url_snapshot); const chart = safeExternalUrl(song.chart_url_snapshot); return `<div class="service-detail-song"><div class="service-song-title"><strong>${index + 1}. ${escapeHtml(song.title_snapshot)}</strong>${song.artist_snapshot ? `<span>${escapeHtml(song.artist_snapshot)}</span>` : ''}</div>${song.soloist ? `<div class="soloist-highlight"><span aria-hidden="true">🎤</span><div><small>SOLISTA(S)</small><strong>${escapeHtml(song.soloist)}</strong></div></div>` : ''}${song.male_key_snapshot ? `<p>Tom masculino: ${escapeHtml(song.male_key_snapshot)}</p>` : ''}${song.female_key_snapshot ? `<p>Tom feminino: ${escapeHtml(song.female_key_snapshot)}</p>` : ''}<p>${youtube ? `▶ <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube</a>　` : ''}${chart ? `🎸 <a href="${escapeHtml(chart)}" target="_blank" rel="noopener">Cifra</a>` : ''}</p></div>`; }).join('') || '<p>Nenhuma música adicionada.</p>';
-  $('serviceDetail').innerHTML = `<div class="section-heading"><div><span class="section-kicker">${escapeHtml(selectedGroup.name.toLocaleUpperCase('pt-BR'))}</span><h3>Escala de ${escapeHtml(new Date(`${service.service_date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }))}</h3><p>${escapeHtml(formatServiceDate(service.service_date))} · Tema: ${escapeHtml(service.theme || 'A definir')}</p></div><div class="admin-actions"><button class="button-quiet" id="serviceBackButton" type="button">Voltar</button>${canGroup('edit', selectedGroup) ? `<button class="button-outline" id="editServiceButton" type="button">Editar escala</button>` : ''}</div></div><h4>👥 CANTORES</h4><ul>${singers}</ul><h4>🎸 MÚSICOS</h4><ul>${musicians}</ul><h4>🎵 REPERTÓRIO</h4>${songs}<details class="snapshot-details"><summary>Histórico de alterações (${service.snapshots.length})</summary><ol class="snapshots-list">${service.snapshots.map(row => `<li>${escapeHtml(formatDate(row.created_at))}</li>`).join('') || '<li>Nenhuma alteração anterior.</li>'}</ol></details>`;
+  const songs = service.songs.map((song, index) => {
+    const youtube = safeExternalUrl(song.youtube_url_snapshot); const chart = safeExternalUrl(song.chart_url_snapshot);
+    return `<article class="service-detail-song"><div class="song-detail-title"><span class="song-number">${index + 1}</span><div><h4>${escapeHtml(song.title_snapshot)}</h4>${song.artist_snapshot ? `<p>${escapeHtml(song.artist_snapshot)}</p>` : ''}</div></div>${song.soloist ? `<div class="soloist-highlight"><span aria-hidden="true">🎤</span><div><small>SOLISTA(S)</small><strong>${escapeHtml(song.soloist)}</strong></div></div>` : '<p class="no-soloist">Solista a definir</p>'}<div class="song-detail-meta"><span class="song-key ${song.male_key_snapshot ? '' : 'pending'}">Tom masculino <strong>${escapeHtml(song.male_key_snapshot || 'A definir')}</strong></span><span class="song-key ${song.female_key_snapshot ? '' : 'pending'}">Tom feminino <strong>${escapeHtml(song.female_key_snapshot || 'A definir')}</strong></span></div><div class="song-detail-links">${youtube ? `<a class="song-resource-link" href="${escapeHtml(youtube)}" target="_blank" rel="noopener">▶ YouTube</a>` : '<span class="song-resource-pending">YouTube pendente</span>'}${chart ? `<a class="song-resource-link" href="${escapeHtml(chart)}" target="_blank" rel="noopener">♫ Cifra</a>` : '<span class="song-resource-pending">Cifra pendente</span>'}</div></article>`;
+  }).join('') || '<p class="empty-repertoire">Nenhuma música adicionada.</p>';
+  const nextDate = groupServices.filter(row => String(row.service_date) >= localDateKey(new Date())).map(row => String(row.service_date)).sort()[0];
+  const dateState = service.service_date < localDateKey(new Date()) ? ['past', 'REALIZADA'] : service.service_date === localDateKey(new Date()) ? ['today', 'HOJE'] : service.service_date === nextDate ? ['next', 'PRÓXIMA'] : ['scheduled', 'AGENDADA'];
+  const monthLabel = new Date(`${service.service_date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  $('serviceDetail').innerHTML = `<div class="service-detail-header"><div class="service-breadcrumb"><button class="text-back-button" id="serviceBackButton" type="button">← Voltar às escalas</button><span>› ${escapeHtml(selectedGroup.name)}</span><span>› ${escapeHtml(monthLabel)}</span></div><div class="service-detail-heading"><div><span class="section-kicker">${escapeHtml(selectedGroup.name.toLocaleUpperCase('pt-BR'))}</span><h3>${escapeHtml(formatServiceDate(service.service_date))}</h3><p class="service-detail-theme">Tema: <strong>${escapeHtml(service.theme || 'A definir')}</strong></p></div><div class="service-detail-actions"><span class="service-status ${dateState[0]}">${dateState[1]}</span><button class="button-outline" id="copyServiceButton" type="button">Copiar repertório</button><button class="button-outline" id="printServiceButton" type="button">Imprimir / PDF</button>${canGroup('edit', selectedGroup) ? `<button class="button-primary" id="editServiceButton" type="button">Editar escala</button>` : ''}</div></div></div><div class="service-team-grid"><section class="service-team-card singers-card"><span>👥 CANTORES</span><ul>${singers}</ul></section><section class="service-team-card musicians-card"><span>🎸 MÚSICOS</span><ul>${musicians}</ul></section></div><div class="service-repertoire-heading"><div><span class="section-kicker">REPERTÓRIO</span><h3>${service.songs.length} ${service.songs.length === 1 ? 'música' : 'músicas'}</h3></div><p>Solistas, tons e referências</p></div><div class="service-detail-songs">${songs}</div><details class="snapshot-details"><summary>Histórico de alterações (${service.snapshots.length})</summary><ol class="snapshots-list">${service.snapshots.map(row => `<li>${escapeHtml(formatDate(row.created_at))}</li>`).join('') || '<li>Nenhuma alteração anterior.</li>'}</ol></details>`;
   $('servicesList').hidden = true; $('servicesEmptyState').hidden = true; $('serviceDetail').hidden = false;
   $('serviceBackButton').addEventListener('click', () => { $('serviceDetail').hidden = true; $('servicesList').hidden = false; loadServices().catch(error => message(error.message)); });
   $('editServiceButton')?.addEventListener('click', () => openServiceEditor(service));
+  $('copyServiceButton').addEventListener('click', () => copyServiceRepertoire(service).catch(error => message(error.message)));
+  $('printServiceButton').addEventListener('click', () => window.print());
+}
+async function copyServiceRepertoire(service) {
+  const lines = ['PRIMEIRA IGREJA PRESBITERIANA NA ENSEADA', 'MINISTÉRIO DE LOUVOR', `ESCALA · ${selectedGroup.name.toLocaleUpperCase('pt-BR')}`, formatServiceDate(service.service_date), `Tema: ${service.theme || 'A definir'}`, '', 'CANTORES', ...service.people.filter(person => person.role === 'singer').map(person => `• ${person.name}`), '', 'MÚSICOS', ...service.people.filter(person => person.role === 'musician').map(person => `• ${person.name}`), '', 'REPERTÓRIO'];
+  service.songs.forEach((song, index) => { lines.push('', `${index + 1}. ${song.title_snapshot}${song.artist_snapshot ? ` — ${song.artist_snapshot}` : ''}`); if (song.soloist) lines.push(`Solista(s): ${song.soloist}`); if (song.male_key_snapshot) lines.push(`Tom masculino: ${song.male_key_snapshot}`); if (song.female_key_snapshot) lines.push(`Tom feminino: ${song.female_key_snapshot}`); if (song.youtube_url_snapshot) lines.push(`YouTube: ${song.youtube_url_snapshot}`); if (song.chart_url_snapshot) lines.push(`Cifra: ${song.chart_url_snapshot}`); });
+  const text = lines.join('\n');
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const helper = document.createElement('textarea'); helper.value = text; helper.setAttribute('readonly', ''); helper.style.position = 'fixed'; helper.style.opacity = '0'; document.body.append(helper); helper.select();
+    const copied = document.execCommand('copy'); helper.remove();
+    if (!copied) throw new Error('Não foi possível copiar automaticamente. Tente imprimir ou selecionar o repertório.');
+  }
+  message('Repertório copiado. Você já pode colá-lo na conversa do grupo.', true);
 }
 function renderServiceSongRows(songs = []) {
   $('serviceSongRows').innerHTML = songs.map((song, index) => `<div class="service-song-editor" data-song-row><div class="service-song-editor-head"><strong>Música ${index + 1}</strong><div class="tile-actions">${song.song_id ? '' : '<button class="button-outline" type="button" data-register-song>Adicionar à biblioteca</button>'}<button class="button-quiet" type="button" data-remove-song>Remover</button></div></div><input type="hidden" data-field="song_id" value="${escapeHtml(song.song_id || '')}"><label class="soloist-editor-field"><span><b>🎤 Solista(s) desta música</b><small>Informe uma ou duas pessoas; pode separar os nomes por “e” ou vírgula.</small></span><input data-field="soloist" maxlength="200" placeholder="Ex.: Corina e André" value="${escapeHtml(song.soloist || '')}"></label><div class="service-song-editor-grid"><label>Título<input data-field="title_snapshot" maxlength="200" value="${escapeHtml(song.title_snapshot || '')}" required></label><label>Artista / compositor<input data-field="artist_snapshot" value="${escapeHtml(song.artist_snapshot || '')}"></label><label>Tom masculino<input data-field="male_key_snapshot" value="${escapeHtml(song.male_key_snapshot || '')}"></label><label>Tom feminino<input data-field="female_key_snapshot" value="${escapeHtml(song.female_key_snapshot || '')}"></label><label>YouTube<input data-field="youtube_url_snapshot" type="url" value="${escapeHtml(song.youtube_url_snapshot || '')}"></label><label>Cifra<input data-field="chart_url_snapshot" type="url" value="${escapeHtml(song.chart_url_snapshot || '')}"></label></div></div>`).join('');
@@ -521,6 +600,7 @@ async function openServiceEditor(service = null, draft = null) {
   $('serviceTheme').value = service?.theme || draft?.theme || '';
   $('serviceSingers').value = service?.people.filter(row => row.role === 'singer').map(row => row.name).join('\n') || (draft?.singers || []).join('\n');
   $('serviceMusicians').value = service?.people.filter(row => row.role === 'musician').map(row => row.name).join('\n') || (draft?.musicians || []).join('\n');
+  $('serviceForm').dataset.dirty = 'false';
   renderServiceSongRows(service?.songs || draft?.songs || []);
   $('serviceEditorTitle').textContent = service ? 'Editar escala' : 'Nova escala';
   $('serviceDetail').hidden = true; $('servicesList').hidden = false; $('serviceEditorWrap').hidden = false;
@@ -549,26 +629,52 @@ function renderSongCatalog() {
   const list = $('songsList'); list.replaceChildren();
   $('newCatalogSongButton').hidden = !canSongModule('create');
   $('newSongFromServiceButton').hidden = !canSongModule('create');
+  $('emptyNewSongButton').hidden = !canSongModule('create');
+  const oldTheme = $('songThemeFilter').value;
+  const themes = [...new Set(songCatalog.flatMap(song => String(song.themes || '').split(/[,;]/).map(theme => theme.trim()).filter(Boolean)))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  $('songThemeFilter').innerHTML = '<option value="">Todos os temas</option>' + themes.map(theme => `<option value="${escapeHtml(theme)}">${escapeHtml(theme)}</option>`).join('');
+  $('songThemeFilter').value = themes.includes(oldTheme) ? oldTheme : '';
   const query = normalizedText($('songSearch').value);
-  songCatalog.filter(song => !query || normalizedText(`${song.title} ${song.artist} ${song.composer} ${song.themes}`).includes(query)).forEach(song => {
+  const statusFilter = $('songStatusFilter').value;
+  const themeFilter = $('songThemeFilter').value;
+  const visible = songCatalog.filter(song => {
+    const missing = songMissingFields(song).length > 0;
+    return (!query || normalizedText(`${song.title} ${song.artist} ${song.composer} ${song.themes}`).includes(query)) && (!themeFilter || String(song.themes || '').split(/[,;]/).some(theme => theme.trim() === themeFilter)) && (statusFilter === 'all' || (statusFilter === 'pending' ? missing : !missing));
+  });
+  $('songCount').textContent = `${visible.length} de ${songCatalog.length} ${songCatalog.length === 1 ? 'música' : 'músicas'}`;
+  $('songsEmptyState').hidden = visible.length > 0;
+  $('songsEmptyState').querySelector('h3').textContent = songCatalog.length ? 'Nenhuma música encontrada' : 'A biblioteca começa aqui';
+  $('songsEmptyState').querySelector('p').textContent = songCatalog.length ? 'Ajuste a busca ou os filtros para encontrar uma música.' : 'Cadastre suas músicas para reutilizá-las nas escalas.';
+  visible.forEach(song => {
     const card = document.createElement('article'); card.className = 'song-catalog-card';
     const youtube = safeExternalUrl(song.youtube_url); const chart = safeExternalUrl(song.chart_url);
-    const links = `${youtube ? `<a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube</a>` : ''}${chart ? `<a href="${escapeHtml(chart)}" target="_blank" rel="noopener">Cifra</a>` : ''}`;
-    card.innerHTML = `<h3>${escapeHtml(song.title)}</h3><p>${escapeHtml([song.artist, song.composer].filter(Boolean).join(' · ') || 'Artista/compositor a definir')}</p><p>Tom masc.: ${escapeHtml(song.male_key || '—')} · Tom fem.: ${escapeHtml(song.female_key || '—')}</p><p>Temas: ${escapeHtml(song.themes || '—')}</p><div class="song-links">${links}</div><div class="tile-actions">${canSongModule('edit') ? '<button class="button-outline" data-song-action="edit" type="button">Editar</button>' : ''}${canSongModule('delete') ? '<button class="button-quiet" data-song-action="delete" type="button">Excluir</button>' : ''}</div>`;
+    const missing = songMissingFields(song);
+    const themesMarkup = String(song.themes || '').split(/[,;]/).map(theme => theme.trim()).filter(Boolean).map(theme => `<span class="song-theme-chip">${escapeHtml(theme)}</span>`).join('');
+    const keyMarkup = (label, value) => `<div class="song-key-value ${value ? '' : 'pending'}"><small>${label}</small><strong>${escapeHtml(value || 'A definir')}</strong></div>`;
+    card.classList.toggle('song-incomplete', missing.length > 0);
+    card.innerHTML = `<div class="song-card-heading"><div><h3>${escapeHtml(song.title)}</h3><p>${escapeHtml(song.artist || 'Artista a definir')}${song.composer ? ` · Compositor: ${escapeHtml(song.composer)}` : ''}</p></div><span class="song-completeness ${missing.length ? 'pending' : 'complete'}">${missing.length ? 'Completar dados' : 'Completa'}</span></div><div class="song-theme-list">${themesMarkup || '<span class="muted small">Sem temas</span>'}</div><div class="song-key-grid">${keyMarkup('Tom masculino', song.male_key)}${keyMarkup('Tom feminino', song.female_key)}</div><div class="song-catalog-resources">${youtube ? `<a class="song-resource-link" href="${escapeHtml(youtube)}" target="_blank" rel="noopener">▶ YouTube</a>` : '<span class="song-resource-pending">YouTube pendente</span>'}${chart ? `<a class="song-resource-link" href="${escapeHtml(chart)}" target="_blank" rel="noopener">♫ Cifra</a>` : '<span class="song-resource-pending">Cifra pendente</span>'}</div>${missing.length ? `<p class="song-missing-hint">Faltam: ${escapeHtml(missing.join(', '))}</p>` : ''}<div class="tile-actions">${canSongModule('edit') ? '<button class="button-outline" data-song-action="edit" type="button">Editar dados</button>' : ''}${canSongModule('delete') ? '<button class="button-quiet" data-song-action="delete" type="button">Excluir</button>' : ''}</div>`;
     card.querySelector('[data-song-action="edit"]')?.addEventListener('click', () => openSongForm(song));
     card.querySelector('[data-song-action="delete"]')?.addEventListener('click', async () => { if (!window.confirm(`Excluir ${song.title} da biblioteca? Escalas antigas mantêm seus dados.`)) return; try { await louvorApi('songs', 'DELETE', { id: song.id }); await loadSongs($('songSearch').value.trim()); message('Música excluída da biblioteca.', true); } catch (error) { message(error.message); } });
     list.append(card);
   });
 }
+function songMissingFields(song) { return [['Tom masculino', song.male_key], ['Tom feminino', song.female_key], ['YouTube', song.youtube_url], ['cifra', song.chart_url]].filter(([, value]) => !String(value || '').trim()).map(([label]) => label); }
 function openSongForm(song = null, fromService = false, serviceRowIndex = null) {
   returnToServiceEditor = fromService;
   returnToServiceRow = serviceRowIndex;
   $('songId').value = song?.id || ''; $('songTitle').value = song?.title || ''; $('songArtist').value = song?.artist || ''; $('songComposer').value = song?.composer || '';
   $('songThemes').value = song?.themes || ''; $('songMaleKey').value = song?.male_key || ''; $('songFemaleKey').value = song?.female_key || '';
   $('songYoutube').value = song?.youtube_url || ''; $('songChart').value = song?.chart_url || '';
+  $('songForm').dataset.dirty = 'false';
   $('songFormTitle').textContent = song ? 'Editar música' : 'Nova música'; $('songFormWrap').hidden = false;
   if (fromService) { $('servicesSection').hidden = true; $('songsSection').hidden = false; }
   $('songFormWrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function closeSongEditor() {
+  closeEditor('songFormWrap', 'songForm');
+  if (!$('songFormWrap').hidden) return;
+  if (returnToServiceEditor) { $('songsSection').hidden = true; $('servicesSection').hidden = false; $('serviceEditorWrap').hidden = false; }
+  returnToServiceEditor = false; returnToServiceRow = null;
 }
 async function saveSongForm(event) {
   event.preventDefault(); const id = $('songId').value;
@@ -655,8 +761,16 @@ function parseRepertoireText(text) {
 }
 function renderImportPreview() {
   importDraft = parseRepertoireText($('repertoireText').value);
-  $('importPreview').innerHTML = importDraft.map(draft => `<article class="import-preview-card"><h4>${escapeHtml(formatServiceDate(draft.service_date))} · ${escapeHtml(draft.theme)}</h4><p>${draft.singers.length} cantores · ${draft.musicians.length} músicos · ${draft.songs.length} músicas</p><p>${draft.songs.map(song => escapeHtml(song.title_snapshot)).join(' · ')}</p></article>`).join('');
-  $('importPreview').hidden = false; $('saveImportButton').disabled = false;
+  const first = importDraft[0];
+  const [year, month] = first.service_date.slice(0, 7).split('-').map(Number);
+  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const groupLabel = ministryGroups.find(group => group.id === first.group_id)?.name || 'Grupo selecionado';
+  const totalSongs = importDraft.reduce((total, draft) => total + draft.songs.length, 0);
+  const duplicateDates = importDraft.filter((draft, index, all) => all.findIndex(row => row.service_date === draft.service_date) !== index);
+  const warning = duplicateDates.length ? `<p class="import-warning">Há datas repetidas no texto. Revise antes de salvar.</p>` : '';
+  $('importPreview').innerHTML = `<div class="import-preview-summary"><span class="section-kicker">ETAPA 2 DE 2 · REVISE ANTES DE SALVAR</span><h4>${escapeHtml(groupLabel)} · ${escapeHtml(monthLabel)}</h4><p>${importDraft.length} escalas · ${totalSongs} músicas · datas calculadas pelo dia do culto do grupo</p>${warning}</div>${importDraft.map(draft => `<article class="import-preview-card"><h4>${escapeHtml(formatServiceDate(draft.service_date))} · ${escapeHtml(draft.theme)}</h4><p>${draft.singers.length} cantores · ${draft.musicians.length} músicos · ${draft.songs.length} músicas</p><p>${draft.songs.map(song => escapeHtml(song.title_snapshot)).join(' · ')}</p></article>`).join('')}`;
+  $('importPreview').hidden = false; $('saveImportButton').disabled = duplicateDates.length > 0;
+  if (duplicateDates.length) message('A prévia encontrou datas repetidas. Corrija as semanas no texto antes de salvar.');
 }
 async function saveImportDraft() {
   if (!importDraft.length) return;
@@ -677,29 +791,30 @@ async function saveImportDraft() {
       const old = existingByDate.get(draft.service_date);
       await louvorApi('service', old ? 'PATCH' : 'POST', { ...draft, ...(old ? { id: old.id } : {}), people: [...draft.singers.map(name => ({ role: 'singer', name })), ...draft.musicians.map(name => ({ role: 'musician', name }))] });
     }
-    $('importWrap').hidden = true; await loadGroups(); message(`${importDraft.length} escalas importadas. Complete os links, tons e músicas pendentes.`, true); importDraft = [];
+    const importedCount = importDraft.length;
+    $('importWrap').hidden = true; $('repertoireText').value = ''; $('repertoireFile').value = ''; $('importPreview').hidden = true; await loadGroups(); message(`${importedCount} escalas importadas. Complete os links, tons e músicas pendentes.`, true); importDraft = [];
   } catch (error) { message(error.message); }
   finally { $('saveImportButton').disabled = false; }
 }
 function activatePanelSection(id) {
-  const sections = ['groupsSection','servicesSection','songsSection','librarySection','personalNotesSection','userAdminSection'];
+  const sections = ['groupsSection','servicesSection','songsSection','userAdminSection'];
   sections.forEach(section => { if (section === 'userAdminSection' && !canSeeUsers()) $(section).hidden = true; else $(section).hidden = section !== id; });
   document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${id}`));
-  if (id === 'librarySection') loadData().catch(error => message(error.message));
   if (id === 'songsSection') loadSongs($('songSearch').value.trim()).catch(error => message(error.message));
   if (id === 'userAdminSection') loadUsers().catch(error => message(error.message));
 }
 function setupDashboard() {
   if (dashboardInitialized) return;
   dashboardInitialized = true;
+  setupModalEditors();
   $('itemVisibility').addEventListener('change', () => {
     $('groupPicker').hidden = $('itemVisibility').value !== 'groups';
     if (!$('groupPicker').hidden) renderGroups();
   });
   $('newItemButton').addEventListener('click', () => openItem());
   $('emptyNewItemButton').addEventListener('click', () => openItem());
-  $('cancelItemButton').addEventListener('click', () => { $('itemFormWrap').hidden = true; });
-  $('cancelItemButtonBottom').addEventListener('click', () => { $('itemFormWrap').hidden = true; });
+  $('cancelItemButton').addEventListener('click', () => closeEditor('itemFormWrap', 'itemForm'));
+  $('cancelItemButtonBottom').addEventListener('click', () => closeEditor('itemFormWrap', 'itemForm'));
   $('itemForm').addEventListener('submit', saveItem);
   $('itemsList').addEventListener('click', handleItemAction);
   $('searchItems').addEventListener('input', renderItems);
@@ -708,39 +823,61 @@ function setupDashboard() {
   $('usersNavLink').hidden = !canSeeUsers();
   $('groupsNavLink').hidden = !canSeeGroups();
   $('songsNavLink').hidden = !canSeeSongs();
-  $('libraryNavLink').hidden = !permitted('library_view');
+  $('mobileMenuButton').addEventListener('click', () => document.body.classList.contains('mobile-menu-open') ? closeMobileMenu() : openMobileMenu());
+  $('mobileMenuClose').addEventListener('click', closeMobileMenu);
+  $('mobileMenuBackdrop').addEventListener('click', closeMobileMenu);
+  document.addEventListener('keydown', event => {
+    const open = [...document.querySelectorAll('.editor-card')].reverse().find(editor => !editor.hidden && editor.closest('[hidden]') === null);
+    if (event.key === 'Escape') { closeMobileMenu(); if (open?.id === 'songFormWrap') closeSongEditor(); else if (open) closeEditor(open.id, open.querySelector('form')?.id || ''); }
+    if (event.key === 'Tab' && open) {
+      const focusable = [...open.querySelectorAll('button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),a[href]')].filter(element => element.getClientRects().length);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (first && event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (last && !event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+  });
   $('usersNavLink').addEventListener('click', event => { event.preventDefault(); if (canSeeUsers()) activatePanelSection('userAdminSection'); });
   $('newUserButton').addEventListener('click', () => openUserForm());
-  $('cancelUserButton').addEventListener('click', () => { $('userFormWrap').hidden = true; });
-  $('cancelUserButtonBottom').addEventListener('click', () => { $('userFormWrap').hidden = true; });
+  $('cancelUserButton').addEventListener('click', () => closeEditor('userFormWrap', 'userForm'));
+  $('cancelUserButtonBottom').addEventListener('click', () => closeEditor('userFormWrap', 'userForm'));
   $('userForm').addEventListener('submit', saveUser);
   $('usersList').addEventListener('click', handleUserAction);
   $('copyTemporaryPassword').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('temporaryPasswordText').textContent); message('Senha copiada. Entregue-a diretamente ao usuário.', true); } catch { message('Não foi possível copiar automaticamente. Selecione e copie a senha.'); } });
   $('groupsNavLink').addEventListener('click', event => { event.preventDefault(); selectedGroup = null; activatePanelSection('groupsSection'); loadGroups().catch(error => message(error.message)); });
   $('songsNavLink').addEventListener('click', event => { event.preventDefault(); activatePanelSection('songsSection'); });
-  $('libraryNavLink').addEventListener('click', event => { event.preventDefault(); activatePanelSection('librarySection'); });
-  $('notesNavLink').addEventListener('click', event => { event.preventDefault(); activatePanelSection('personalNotesSection'); });
-  $('newGroupButton').addEventListener('click', createGroup);
+  document.querySelectorAll('.sidebar .nav-link').forEach(link => link.addEventListener('click', closeMobileMenu));
+  $('userSearch').addEventListener('input', renderUsers);
+  $('userStatusFilter').addEventListener('change', renderUsers);
+  $('presetAllGroupsViewer').addEventListener('click', () => applyGroupPreset('all'));
+  $('presetPrayerEbdViewer').addEventListener('click', () => applyGroupPreset('prayer-ebd'));
+  $('clearGroupPermissions').addEventListener('click', () => applyGroupPreset('clear'));
+  $('newGroupButton').addEventListener('click', () => openGroupForm());
+  $('groupForm').addEventListener('submit', saveGroupForm);
+  $('cancelGroupButton').addEventListener('click', () => closeEditor('groupFormWrap', 'groupForm'));
+  $('cancelGroupBottomButton').addEventListener('click', () => closeEditor('groupFormWrap', 'groupForm'));
   $('backToGroupsButton').addEventListener('click', () => { activatePanelSection('groupsSection'); loadGroups().catch(error => message(error.message)); });
   $('newServiceButton').addEventListener('click', () => openServiceEditor());
   $('emptyNewServiceButton').addEventListener('click', () => openServiceEditor());
   $('serviceMonth').addEventListener('change', () => renderServices(groupServices));
   $('serviceForm').addEventListener('submit', saveServiceForm);
-  $('cancelServiceButton').addEventListener('click', () => { $('serviceEditorWrap').hidden = true; });
-  $('cancelServiceBottomButton').addEventListener('click', () => { $('serviceEditorWrap').hidden = true; });
+  $('cancelServiceButton').addEventListener('click', () => closeEditor('serviceEditorWrap', 'serviceForm'));
+  $('cancelServiceBottomButton').addEventListener('click', () => closeEditor('serviceEditorWrap', 'serviceForm'));
   $('addCatalogSongButton').addEventListener('click', () => { const song = songCatalog.find(row => row.id === $('songCatalogPicker').value); if (song) addServiceSong(song); });
   $('newSongFromServiceButton').addEventListener('click', () => openSongForm(null, true));
   $('newCatalogSongButton').addEventListener('click', () => openSongForm());
+  $('emptyNewSongButton').addEventListener('click', () => openSongForm());
   $('songSearch').addEventListener('input', () => renderSongCatalog());
+  $('songThemeFilter').addEventListener('change', renderSongCatalog);
+  $('songStatusFilter').addEventListener('change', renderSongCatalog);
   $('songForm').addEventListener('submit', saveSongForm);
-  $('cancelSongButton').addEventListener('click', () => { $('songFormWrap').hidden = true; });
-  $('cancelSongBottomButton').addEventListener('click', () => { $('songFormWrap').hidden = true; });
+  $('cancelSongButton').addEventListener('click', closeSongEditor);
+  $('cancelSongBottomButton').addEventListener('click', closeSongEditor);
   $('importRepertoireButton').addEventListener('click', () => { $('importWrap').hidden = false; $('importRepertoireButton').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
-  $('closeImportButton').addEventListener('click', () => { $('importWrap').hidden = true; });
+  $('closeImportButton').addEventListener('click', () => closeEditor('importWrap'));
   $('repertoireFile').addEventListener('change', async event => { const file = event.target.files?.[0]; if (file) $('repertoireText').value = await file.text(); });
   $('previewImportButton').addEventListener('click', () => { try { renderImportPreview(); } catch (error) { $('importPreview').hidden = true; $('saveImportButton').disabled = true; message(error.message); } });
   $('saveImportButton').addEventListener('click', saveImportDraft);
-  const startSection = canSeeGroups() ? 'groupsSection' : canSeeSongs() ? 'songsSection' : canSeeUsers() ? 'userAdminSection' : 'personalNotesSection';
+  const startSection = canSeeGroups() ? 'groupsSection' : canSeeSongs() ? 'songsSection' : canSeeUsers() ? 'userAdminSection' : 'groupsSection';
   activatePanelSection(startSection);
   if (canSeeGroups()) loadGroups().catch(error => message(error.message));
 }
@@ -753,7 +890,6 @@ async function loadProfile() {
   $('welcomeTitle').textContent = `Olá, ${profile.full_name || user.user_metadata?.full_name || 'bem-vindo(a)'}`;
   showView('homeView');
   setupDashboard();
-  await loadData();
 }
 
 $('loginForm').addEventListener('submit', async event => {
@@ -782,7 +918,7 @@ $('changePasswordForm').addEventListener('submit', async event => {
     profile.must_change_password = false;
     $('currentPassword').value = ''; $('newPassword').value = ''; $('confirmPassword').value = '';
     $('welcomeTitle').textContent = `Olá, ${profile.full_name || 'bem-vindo(a)'}`;
-    showView('homeView'); setupDashboard(); await loadData();
+    showView('homeView'); setupDashboard();
   } catch (error) { message(error.message); }
   finally { button.disabled = false; }
 });

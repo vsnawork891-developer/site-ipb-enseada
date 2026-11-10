@@ -53,34 +53,30 @@
     <section id="homeView" class="dashboard" hidden>
       <aside class="sidebar">
         <div class="sidebar-title"><span class="sidebar-icon">♫</span><span>PAINEL<small>MINISTÉRIO DE LOUVOR</small></span></div>
+        <button id="mobileMenuClose" class="mobile-menu-close" type="button">← Fechar menu</button>
         <nav aria-label="Navegação do painel">
           <a class="nav-link active" id="groupsNavLink" href="#groupsSection"><span>▦</span> Grupos</a>
           <a class="nav-link" id="songsNavLink" href="#songsSection"><span>♫</span> Biblioteca musical</a>
-          <a class="nav-link" id="libraryNavLink" href="#librarySection"><span>▤</span> Biblioteca</a>
-          <a class="nav-link" id="notesNavLink" href="#personalNotesSection"><span>✎</span> Minhas notas</a>
           <a class="nav-link" id="usersNavLink" href="#userAdminSection" hidden><span>♙</span> Usuários</a>
         </nav>
         <div class="sidebar-bottom"><span class="status-dot"></span><span>Conectado ao banco</span></div>
       </aside>
+      <button id="mobileMenuBackdrop" class="mobile-menu-backdrop" type="button" aria-label="Fechar menu"></button>
 
       <div class="dashboard-main">
         <header class="topbar">
-          <div><p class="eyebrow">PRIMEIRA IPB ENSEADA</p><h1 id="welcomeTitle">Olá</h1></div>
+          <div class="topbar-heading"><button id="mobileMenuButton" class="mobile-menu-button" type="button" aria-label="Abrir menu" aria-expanded="false">☰</button><div><p class="eyebrow">PRIMEIRA IPB ENSEADA</p><h1 id="welcomeTitle">Olá</h1></div></div>
           <button id="logoutButton" class="button-quiet" type="button">Sair <span aria-hidden="true">↗</span></button>
         </header>
-
-        <section class="welcome-banner">
-          <div><span class="section-kicker">MÚSICA QUE SERVE À IGREJA</span><h2>Prepare o louvor<br>com propósito.</h2><p>Repertórios e referências em um só lugar, acessíveis conforme seus grupos.</p></div>
-          <div class="banner-symbol" aria-hidden="true"><span>♫</span><i></i><i></i><i></i></div>
-        </section>
 
         <section id="groupsSection" class="content-section">
           <div class="section-heading"><div><span class="section-kicker">MINISTÉRIOS E CULTOS</span><h2>Grupos de louvor</h2><p>Selecione um grupo para consultar escalas e repertórios.</p></div><div class="admin-actions"><button id="importRepertoireButton" class="button-outline" type="button">Importar escala .txt</button><button id="newGroupButton" class="button-primary" type="button" hidden>＋ Novo grupo</button></div></div>
           <div id="groupsList" class="group-tiles"></div>
           <div id="groupsEmptyState" class="empty-state" hidden><span class="empty-icon">♫</span><h3>Nenhum grupo disponível</h3><p>Peça ao administrador para conceder acesso ou criar um grupo.</p></div>
+          <div id="groupFormWrap" class="editor-card" hidden><div class="editor-heading"><div><span class="section-kicker">ORGANIZAÇÃO</span><h3 id="groupFormTitle">Novo grupo</h3></div><button id="cancelGroupButton" class="icon-button" type="button" aria-label="Fechar formulário">×</button></div><form id="groupForm" class="editor-grid"><input id="groupId" type="hidden"><div class="field"><label for="groupName">Nome do grupo</label><input id="groupName" maxlength="100" placeholder="Ex.: Culto Público" required></div><div class="field"><label for="groupWeekday">Dia habitual do culto</label><select id="groupWeekday"><option value="0">Domingo</option><option value="1">Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option></select></div><div class="editor-actions full-field"><button type="submit" class="button-primary">Salvar grupo</button><button id="cancelGroupBottomButton" class="button-quiet" type="button">Cancelar</button></div></form></div>
           <div id="importWrap" class="editor-card" hidden>
-            <div class="editor-heading"><div><span class="section-kicker">IMPORTAÇÃO ASSISTIDA</span><h3>Importar escala mensal</h3></div><button id="closeImportButton" class="icon-button" type="button" aria-label="Fechar importação">×</button></div>
-            <p class="muted">Escolha o arquivo .txt ou cole o conteúdo. Confira a prévia antes de salvar; links e tons podem ser preenchidos depois.</p>
+            <div class="editor-heading"><div><span class="section-kicker">ETAPA 1 DE 2 · IMPORTAÇÃO ASSISTIDA</span><h3 id="importDialogTitle">Importar escala mensal</h3></div><button id="closeImportButton" class="icon-button" type="button" aria-label="Fechar importação">×</button></div>
+            <p class="muted">Selecione o grupo, carregue o texto e confira mês, datas, equipe e músicas antes de salvar. Links e tons podem ser completados depois.</p>
             <div class="field"><label for="repertoireFile">Arquivo .txt</label><input id="repertoireFile" type="file" accept=".txt,text/plain"></div>
             <div class="field"><label for="importGroupSelect">Grupo da escala (usado se o cabeçalho não identificar)</label><select id="importGroupSelect"></select></div>
             <div class="field"><label for="repertoireText">Conteúdo</label><textarea id="repertoireText" rows="12" placeholder="Cole aqui o texto recebido com mês, semanas, tema, cantores, músicos e músicas"></textarea></div>
@@ -111,12 +107,13 @@
 
         <section id="songsSection" class="content-section" hidden>
           <div class="section-heading"><div><span class="section-kicker">ACERVO REUTILIZÁVEL</span><h2>Biblioteca musical</h2><p>Cadastre e pesquise músicas para adicionar às escalas.</p></div><button id="newCatalogSongButton" class="button-primary" type="button" hidden>＋ Nova música</button></div>
-          <div class="toolbar"><label class="search-box" for="songSearch"><span>⌕</span><input id="songSearch" type="search" placeholder="Buscar por título, artista, compositor ou tema"></label></div>
+          <div class="toolbar song-library-toolbar"><label class="search-box" for="songSearch"><span>⌕</span><input id="songSearch" type="search" placeholder="Buscar por título, artista, compositor ou tema"></label><label class="filter-box" for="songThemeFilter">Tema<select id="songThemeFilter"><option value="">Todos os temas</option></select></label><label class="filter-box" for="songStatusFilter">Dados<select id="songStatusFilter"><option value="all">Todas</option><option value="pending">Pendentes</option><option value="complete">Completas</option></select></label><span id="songCount" class="count-pill">0 músicas</span></div>
           <div id="songFormWrap" class="editor-card" hidden><div class="editor-heading"><div><span class="section-kicker">BIBLIOTECA MUSICAL</span><h3 id="songFormTitle">Nova música</h3></div><button id="cancelSongButton" class="icon-button" type="button" aria-label="Fechar cadastro">×</button></div><form id="songForm" class="editor-grid"><input id="songId" type="hidden"><div class="field"><label for="songTitle">Nome da música</label><input id="songTitle" maxlength="200" required></div><div class="field"><label for="songArtist">Artista / ministério</label><input id="songArtist" maxlength="200"></div><div class="field"><label for="songComposer">Compositor</label><input id="songComposer" maxlength="200"></div><div class="field"><label for="songThemes">Temas (separe por vírgula)</label><input id="songThemes" maxlength="500" placeholder="Ceia, gratidão, esperança"></div><div class="field"><label for="songMaleKey">Tom masculino</label><input id="songMaleKey" maxlength="40" placeholder="A (Lá)"></div><div class="field"><label for="songFemaleKey">Tom feminino</label><input id="songFemaleKey" maxlength="40" placeholder="G (Sol)"></div><div class="field"><label for="songYoutube">Link do YouTube</label><input id="songYoutube" type="url" maxlength="1000"></div><div class="field"><label for="songChart">Link da cifra</label><input id="songChart" type="url" maxlength="1000"></div><div class="editor-actions full-field"><button type="submit" class="button-primary">Salvar música</button><button id="cancelSongBottomButton" class="button-quiet" type="button">Cancelar</button></div></form></div>
-          <div id="songsList" class="song-catalog-list"></div>
+          <div id="songsList" class="song-catalog-list" aria-live="polite"></div>
+          <div id="songsEmptyState" class="empty-state" hidden><span class="empty-icon">♫</span><h3>Nenhuma música encontrada</h3><p>Ajuste a busca ou os filtros, ou cadastre uma nova música.</p><button id="emptyNewSongButton" class="button-outline" type="button" hidden>Cadastrar música</button></div>
         </section>
 
-        <section id="librarySection" class="content-section">
+        <section id="librarySection" class="content-section" hidden>
           <div class="section-heading">
             <div><span class="section-kicker">ACERVO DO MINISTÉRIO</span><h2>Biblioteca de repertório</h2><p>Consulte músicas, cifras e referências compartilhadas com você.</p></div>
             <button id="newItemButton" class="button-primary" type="button"><span aria-hidden="true">＋</span> Novo repertório</button>
@@ -140,7 +137,7 @@
           <div id="noAccessState" class="empty-state" hidden><span class="empty-icon">⌁</span><h3>Biblioteca indisponível</h3><p>Seu perfil ainda não tem permissão para consultar o acervo. Procure o administrador do painel.</p></div>
         </section>
 
-        <section id="personalNotesSection" class="content-section notes-section">
+        <section id="personalNotesSection" class="content-section notes-section" hidden>
           <div class="section-heading"><div><span class="section-kicker">ESPAÇO PESSOAL</span><h2>Minhas notas</h2><p>Notas privadas, vinculadas à sua conta e salvas no banco.</p></div></div>
           <div class="notes-card"><textarea id="personalNotes" rows="5" maxlength="8000" placeholder="Anote ideias, referências e lembretes para o ministério…"></textarea><div class="notes-footer"><span>Somente você pode ver estas notas.</span><button id="saveNotesButton" class="button-outline" type="button">Salvar notas</button></div></div>
         </section>
@@ -156,16 +153,18 @@
               <input id="userId" type="hidden">
               <div class="field"><label for="userName">Nome</label><input id="userName" maxlength="120" required></div>
               <div class="field"><label for="userPhone">Telefone com DDD</label><input id="userPhone" inputmode="numeric" maxlength="11" placeholder="11999999999" required></div>
-              <div class="field"><label for="userRole">Perfil</label><select id="userRole"><option value="member">Integrante</option><option value="leader">Líder</option><option value="admin">Administrador</option></select></div>
+              <div class="field"><label for="userRole">Perfil</label><select id="userRole"><option value="member">Integrante</option><option value="admin">Administrador</option></select></div>
               <label class="check-row"><input id="userActive" type="checkbox" checked><span>Acesso ativo</span></label>
               <label class="check-row full-field"><input id="allGroupsAccess" type="checkbox"><span>Visualizar todos os grupos, inclusive os criados futuramente</span></label>
-              <fieldset class="field full-field permission-field"><legend>Permissões por grupo</legend><div id="userGroupPermissions" class="permission-matrix"></div></fieldset>
+              <fieldset class="field full-field permission-field"><legend>Permissões por grupo</legend><div class="permission-presets"><button id="presetAllGroupsViewer" class="button-quiet" type="button">Visualizador de todos os grupos</button><button id="presetPrayerEbdViewer" class="button-quiet" type="button">Visualizador de Oração + EBD</button><button id="clearGroupPermissions" class="button-quiet" type="button">Limpar seleção</button></div><div id="userGroupPermissions" class="permission-matrix"></div></fieldset>
               <fieldset class="field full-field permission-field"><legend>Permissões gerais</legend><div id="userSystemPermissions" class="permission-grid"></div><small class="muted">O perfil de administrador geral não pode ser concedido por esta tela.</small></fieldset>
               <div class="editor-actions full-field"><button type="submit" class="button-primary">Salvar usuário</button><button id="cancelUserButtonBottom" class="button-quiet" type="button">Cancelar</button></div>
             </form>
           </div>
           <div id="temporaryPasswordResult" class="credential-result" hidden><div><strong>Senha temporária</strong><p>Copie e entregue diretamente ao usuário. Ela não será exibida novamente.</p><code id="temporaryPasswordText"></code></div><button id="copyTemporaryPassword" class="button-outline" type="button">Copiar senha</button></div>
+          <div class="toolbar user-list-toolbar"><label class="search-box" for="userSearch"><span>⌕</span><input id="userSearch" type="search" placeholder="Buscar por nome ou telefone"></label><label class="filter-box" for="userStatusFilter">Acesso<select id="userStatusFilter"><option value="all">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label><span id="userCount" class="count-pill">0 usuários</span></div>
           <div id="usersList" class="users-list" aria-live="polite"></div>
+          <div id="usersNoResults" class="empty-state" hidden><h3>Nenhum usuário encontrado</h3><p>Altere o termo de busca ou o filtro de acesso.</p></div>
           <div id="usersEmptyState" class="empty-state" hidden><span class="empty-icon">♙</span><h3>Nenhum usuário cadastrado</h3><p>Crie os primeiros acessos ao painel.</p></div>
         </section>
         <footer class="dashboard-footer">Primeira Igreja Presbiteriana na Enseada <span>·</span> Ministério de Louvor</footer>
