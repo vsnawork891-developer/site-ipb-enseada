@@ -49,11 +49,21 @@ function cleanUrl(value) {
   catch { /* reported below */ }
   throw Object.assign(new Error('Links devem começar com http:// ou https://.'), { status: 400 });
 }
+async function agendaAssignablePeople(groupId) {
+  const [profiles, memberships, globalView] = await Promise.all([
+    rest('profiles?select=id,full_name,is_active,is_owner,role,all_groups_access&is_active=eq.true&order=full_name.asc'),
+    rest(`group_memberships?select=user_id&group_id=eq.${encodeURIComponent(groupId)}&has_access=eq.true&can_view=eq.true`),
+    rest('system_permissions?select=user_id&groups_view=eq.true')
+  ]);
+  const memberIds = new Set(memberships.map(row => row.user_id));
+  const globalIds = new Set(globalView.map(row => row.user_id));
+  return profiles.filter(person => person.is_owner === true || person.role === 'owner' || person.all_groups_access === true || memberIds.has(person.id) || globalIds.has(person.id)).map(person => ({ id: person.id, full_name: person.full_name }));
+}
 async function serviceBundle(id) {
   const services = await rest(`worship_services?select=*&id=eq.${encodeURIComponent(id)}&limit=1`);
   if (!services[0]) return null;
   const [people, songs, snapshots] = await Promise.all([
-    rest(`service_people?select=id,role,name,position&service_id=eq.${encodeURIComponent(id)}&order=role.asc,position.asc`),
+    rest(`service_people?select=id,profile_id,role,name,position&service_id=eq.${encodeURIComponent(id)}&order=role.asc,position.asc`),
     rest(`service_songs?select=id,song_id,title_snapshot,artist_snapshot,soloist,male_key_snapshot,female_key_snapshot,youtube_url_snapshot,chart_url_snapshot,position&service_id=eq.${encodeURIComponent(id)}&order=position.asc`),
     rest(`service_snapshots?select=id,changed_by,created_at&service_id=eq.${encodeURIComponent(id)}&order=created_at.desc`)
   ]);
@@ -74,7 +84,13 @@ async function saveService(actor, body, editing) {
     if (!old) throw Object.assign(new Error('Escala não encontrada.'), { status: 404 });
     if (!groupAllowed(actor, old.group_id, 'edit')) throw Object.assign(new Error('Você não tem permissão para editar esta escala.'), { status: 403 });
   }
-  const cleanPeople = people.map((person, index) => ({ service_id: serviceId, role: person.role === 'musician' ? 'musician' : 'singer', name: cleanText(person.name, 120), position: index + 1 })).filter(person => person.name);
+  const cleanPeople = people.map((person, index) => ({ service_id: serviceId, role: person.role === 'musician' ? 'musician' : 'singer', name: cleanText(person.name, 120), profile_id: /^[0-9a-f-]{36}$/i.test(String(person.profile_id || '')) ? person.profile_id : null, position: index + 1 })).filter(person => person.name);
+  const linkedIds = [...new Set(cleanPeople.map(person => person.profile_id).filter(Boolean))];
+  if (linkedIds.length) {
+    const assignableProfiles = await agendaAssignablePeople(groupId);
+    const knownIds = new Set(assignableProfiles.map(row => row.id));
+    if (linkedIds.some(id => !knownIds.has(id))) throw Object.assign(new Error('Um vínculo aponta para uma conta inativa ou sem acesso de visualização a este grupo. Revise os vínculos dos integrantes.'), { status: 400 });
+  }
   const cleanSongs = songs.map((song, index) => ({
     song_id: song.song_id || null,
     title_snapshot: cleanText(song.title_snapshot, 200),
@@ -106,6 +122,32 @@ module.exports = async (req, res) => {
   try {
     const actor = await actorFor(req);
     const resource = String(req.query?.resource || req.body?.resource || '');
+    if (resource === 'people' && req.method === 'GET') {
+      const groupId = String(req.query?.group_id || '');
+      if (!/^[0-9a-f-]{36}$/i.test(groupId)) throw Object.assign(new Error('Informe um grupo válido.'), { status: 400 });
+      if (!groupAllowed(actor, groupId, 'create') && !groupAllowed(actor, groupId, 'edit')) throw Object.assign(new Error('Você não tem permissão para vincular integrantes neste grupo.'), { status: 403 });
+      return send(res, 200, { people: await agendaAssignablePeople(groupId) });
+    }
+    if (resource === 'agenda' && req.method === 'GET') {
+      const month = String(req.query?.month || '');
+      if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month)) throw Object.assign(new Error('Informe o mês da agenda no formato AAAA-MM.'), { status: 400 });
+      const [year, monthNumber] = month.split('-').map(Number);
+      const monthStart = `${month}-01`;
+      const monthEnd = `${year}-${String(monthNumber).padStart(2, '0')}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, '0')}`;
+      const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+      const fromDate = monthStart < today ? today : monthStart;
+      if (fromDate > monthEnd) return send(res, 200, { month, events: [] });
+      const assignments = await rest(`service_people?select=service_id&profile_id=eq.${encodeURIComponent(actor.id)}`);
+      const serviceIds = [...new Set(assignments.map(row => row.service_id).filter(Boolean))];
+      if (!serviceIds.length) return send(res, 200, { month, events: [] });
+      const services = await rest(`worship_services?select=id,group_id,service_date,theme&id=in.(${serviceIds.map(encodeURIComponent).join(',')})&service_date=gte.${fromDate}&service_date=lte.${monthEnd}&order=service_date.asc`);
+      if (!services.length) return send(res, 200, { month, events: [] });
+      const groupIds = [...new Set(services.map(service => service.group_id))];
+      const groups = await rest(`ministry_groups?select=id,name,service_weekday&id=in.(${groupIds.map(encodeURIComponent).join(',')})`);
+      const groupById = new Map(groups.map(group => [group.id, group]));
+      const events = services.filter(service => groupAllowed(actor, service.group_id, 'view') && groupById.has(service.group_id)).map(service => ({ ...service, group: groupById.get(service.group_id) }));
+      return send(res, 200, { month, events });
+    }
     if (resource === 'groups') {
       if (req.method === 'GET') {
         if (!actor.owner && !actor.allGroupsView && !SYSTEM_KEYS.filter(key => key.startsWith('groups_')).some(key => actor.permissions[key] === true) && !actor.memberships.some(row => row.can_view)) throw Object.assign(new Error('Você não tem permissão para consultar grupos.'), { status: 403 });

@@ -59,6 +59,7 @@
         <button id="mobileMenuClose" class="mobile-menu-close" type="button">← Fechar menu</button>
         <nav aria-label="Navegação do painel">
           <a class="nav-link active" id="groupsNavLink" href="#groupsSection"><span>▦</span> Grupos</a>
+          <a class="nav-link" id="agendaNavLink" href="#agendaSection"><span>▣</span> Minha agenda</a>
           <a class="nav-link" id="songsNavLink" href="#songsSection"><span>♫</span> Biblioteca musical</a>
           <a class="nav-link" id="usersNavLink" href="#userAdminSection" hidden><span>♙</span> Usuários</a>
         </nav>
@@ -88,6 +89,13 @@
           </div>
         </section>
 
+        <section id="agendaSection" class="content-section" hidden>
+          <div class="section-heading"><div><span class="section-kicker">SEUS COMPROMISSOS</span><h2>Minha agenda</h2><p>Escalas em que seu cadastro está vinculado. Selecione uma para abrir o repertório.</p></div></div>
+          <div class="agenda-toolbar"><button id="agendaPreviousMonth" class="button-quiet" type="button" aria-label="Mês anterior">←</button><strong id="agendaMonthLabel" class="agenda-month-label"></strong><button id="agendaNextMonth" class="button-quiet" type="button" aria-label="Próximo mês">→</button><label class="filter-box" for="agendaGroupFilter">Grupo<select id="agendaGroupFilter"><option value="">Todos os meus grupos</option></select></label></div>
+          <div id="agendaList" class="agenda-list" aria-live="polite"></div>
+          <div id="agendaEmptyState" class="empty-state" hidden><span class="empty-icon">▣</span><h3>Nenhuma escala encontrada neste mês</h3><p>Quando seu nome estiver vinculado a uma escala futura, ela aparecerá aqui. Se você deveria estar escalado, peça a um responsável para conferir o vínculo da sua conta na escala.</p></div>
+        </section>
+
         <section id="servicesSection" class="content-section" hidden>
           <div class="section-heading"><div><button id="backToGroupsButton" class="button-quiet" type="button">← Grupos</button><span id="serviceGroupKicker" class="section-kicker"></span><h2 id="serviceGroupTitle">Escalas</h2><p>Repertório do mês atual e consulta de escalas anteriores.</p></div><div class="service-period-tools"><div class="current-period"><span class="section-kicker">MÊS ATUAL</span><strong id="currentServiceMonth"></strong></div><label class="filter-box history-filter" for="serviceMonth">Escalas anteriores<select id="serviceMonth"><option value="">Nenhuma escala anterior</option></select></label><button id="newServiceButton" class="button-primary" type="button" hidden>＋ Nova escala</button></div></div>
           <div id="servicesList" class="service-tiles"></div>
@@ -98,8 +106,8 @@
               <input id="serviceId" type="hidden">
               <div class="field"><label for="serviceDate">Data</label><input id="serviceDate" type="date" required></div>
               <div class="field"><label for="serviceTheme">Tema</label><input id="serviceTheme" maxlength="240" placeholder="Ex.: Santa Ceia"></div>
-              <div class="field"><label for="serviceSingers">Cantores (um nome por linha)</label><textarea id="serviceSingers" rows="5" placeholder="André&#10;Corina&#10;Júlio"></textarea></div>
-              <div class="field"><label for="serviceMusicians">Músicos (um nome por linha)</label><textarea id="serviceMusicians" rows="5" placeholder="André&#10;Isac&#10;Marcos"></textarea></div>
+              <div class="field"><label for="serviceSingers">Cantores (um nome por linha)</label><textarea id="serviceSingers" rows="5" placeholder="André&#10;Corina&#10;Júlio"></textarea><details class="person-link-details"><summary>Vincular nomes às contas para Minha agenda</summary><p>Escolha a conta correspondente. A lista mostra contas ativas com acesso de visualização a este grupo. Nomes sem vínculo continuam na escala, mas não aparecem na agenda pessoal.</p><div id="serviceSingerLinks" class="person-link-list"></div></details></div>
+              <div class="field"><label for="serviceMusicians">Músicos (um nome por linha)</label><textarea id="serviceMusicians" rows="5" placeholder="André&#10;Isac&#10;Marcos"></textarea><details class="person-link-details"><summary>Vincular nomes às contas para Minha agenda</summary><p>Escolha a conta correspondente. A lista mostra contas ativas com acesso de visualização a este grupo. Nomes sem vínculo continuam na escala, mas não aparecem na agenda pessoal.</p><div id="serviceMusicianLinks" class="person-link-list"></div></details></div>
               <div class="field full-field"><label for="songCatalogPicker">Adicionar da biblioteca musical</label><div class="toolbar"><select id="songCatalogPicker" class="input"><option value="">Selecione uma música</option></select><button id="addCatalogSongButton" class="button-outline" type="button">Adicionar selecionada</button><button id="newSongFromServiceButton" class="button-quiet" type="button">＋ Cadastrar música</button></div></div>
               <div class="field full-field"><label>Repertório (máximo de 8 músicas)</label><div id="serviceSongRows" class="service-song-rows"></div></div>
               <div class="editor-actions full-field"><button type="submit" class="button-primary">Salvar escala</button><button id="cancelServiceBottomButton" class="button-quiet" type="button">Cancelar</button></div>

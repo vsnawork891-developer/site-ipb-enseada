@@ -19,6 +19,10 @@ let importDraft = [];
 let returnToServiceEditor = false;
 let returnToServiceRow = null;
 let dashboardInitialized = false;
+let agendaMonth = monthKey(new Date());
+let agendaEvents = [];
+let groupPeopleCache = new Map();
+const servicePersonSelections = { singer: new Map(), musician: new Map() };
 const PROJECT_START_MONTH = '2026-11';
 
 function showView(id) {
@@ -440,10 +444,58 @@ async function louvorApi(resource, method = 'GET', body = null, query = '') {
   if (!response.ok) throw new Error(data?.error || 'Não foi possível concluir a operação.');
   return data;
 }
+async function loadGroupPeople(groupId, refresh = false) {
+  if (!refresh && groupPeopleCache.has(groupId)) return groupPeopleCache.get(groupId);
+  const result = await louvorApi('people', 'GET', null, `&group_id=${encodeURIComponent(groupId)}`);
+  const people = result.people || [];
+  groupPeopleCache.set(groupId, people);
+  return people;
+}
+function rememberPersonSelections(role) {
+  const root = $(role === 'singer' ? 'serviceSingerLinks' : 'serviceMusicianLinks');
+  root?.querySelectorAll('[data-person-link]').forEach(select => {
+    servicePersonSelections[role].set(normalizedText(select.dataset.personName), select.value);
+  });
+}
+function renderServicePersonLinks(role) {
+  rememberPersonSelections(role);
+  const input = $(role === 'singer' ? 'serviceSingers' : 'serviceMusicians');
+  const root = $(role === 'singer' ? 'serviceSingerLinks' : 'serviceMusicianLinks');
+  const names = input.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+  const directory = groupPeopleCache.get(selectedGroup.id) || [];
+  const selections = servicePersonSelections[role];
+  root.innerHTML = names.map(name => {
+    const key = normalizedText(name);
+    const matches = directory.filter(person => normalizedText(person.full_name) === key);
+    if (!selections.has(key) && matches.length === 1) selections.set(key, matches[0].id);
+    let selectedId = selections.get(key) || '';
+    const exists = directory.some(person => person.id === selectedId);
+    const currentOption = selectedId && !exists ? `<option value="${escapeHtml(selectedId)}" selected>Vínculo atual (conta indisponível)</option>` : '';
+    return `<label class="person-link-row"><span>${escapeHtml(name)}</span><select data-person-link data-person-name="${escapeHtml(name)}" aria-label="Conta correspondente a ${escapeHtml(name)}"><option value="">Sem vínculo com uma conta</option>${currentOption}${directory.map(person => `<option value="${escapeHtml(person.id)}" ${person.id === selectedId ? 'selected' : ''}>${escapeHtml(person.full_name)}</option>`).join('')}</select></label>`;
+  }).join('') || '<small class="person-link-empty">Adicione nomes acima para associá-los às contas.</small>';
+  root.querySelectorAll('[data-person-link]').forEach(select => select.addEventListener('change', () => selections.set(normalizedText(select.dataset.personName), select.value)));
+}
+function servicePersonRows(role, value) {
+  rememberPersonSelections(role);
+  const directory = groupPeopleCache.get(selectedGroup.id) || [];
+  return value.split(/\r?\n/).map(name => name.trim()).filter(Boolean).map(name => {
+    const key = normalizedText(name);
+    const selected = servicePersonSelections[role].has(key) ? servicePersonSelections[role].get(key) : '';
+    const matches = directory.filter(person => normalizedText(person.full_name) === key);
+    const profileId = servicePersonSelections[role].has(key) ? selected : (matches.length === 1 ? matches[0].id : '');
+    return { role, name, profile_id: profileId || null };
+  });
+}
+function matchProfileId(name, groupId) {
+  const directory = groupPeopleCache.get(groupId) || [];
+  const matches = directory.filter(person => normalizedText(person.full_name) === normalizedText(name));
+  return matches.length === 1 ? matches[0].id : null;
+}
 function canGroup(action, group = selectedGroup) { return owner() || Boolean(group && profile?.groups?.some(row => row.id === group.id && row[`can_${action}`])); }
 function canGroupModule(action) { return permitted(`groups_${action}`); }
 function canSongModule(action) { return permitted(`library_${action}`); }
 function canSeeGroups() { return owner() || profile?.all_groups_access === true || ['view','create','edit','delete'].some(action => permitted(`groups_${action}`)) || profile?.groups?.some(group => group.can_view); }
+function canSeeAgenda() { return canSeeGroups(); }
 function canSeeSongs() { return owner() || profile?.all_groups_access === true || ['view','create','edit','delete'].some(action => permitted(`library_${action}`)) || profile?.groups?.some(group => group.can_view); }
 function normalizedText(value) { return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g, ' ').trim(); }
 const weekdayNames = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
@@ -510,7 +562,7 @@ function fillMonthOptions(services = []) {
 }
 async function openGroup(group) {
   selectedGroup = group;
-  $('groupsSection').hidden = true; $('servicesSection').hidden = false; $('songsSection').hidden = true;
+  $('groupsSection').hidden = true; $('agendaSection').hidden = true; $('servicesSection').hidden = false; $('songsSection').hidden = true;
   $('serviceGroupTitle').textContent = group.name;
   $('serviceGroupKicker').textContent = group.name.toLocaleUpperCase('pt-BR');
   $('newServiceButton').hidden = !canGroup('create', group);
@@ -568,6 +620,56 @@ async function openService(id) {
     renderServiceDetail(result.service);
   } catch (error) { message(error.message); }
 }
+function agendaMonthText(month) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  return new Date(year, monthNumber - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+}
+async function loadAgenda() {
+  $('agendaMonthLabel').textContent = agendaMonthText(agendaMonth);
+  $('agendaList').hidden = false;
+  $('agendaList').innerHTML = '<div class="agenda-loading">Carregando suas escalas…</div>';
+  $('agendaEmptyState').hidden = true;
+  try {
+    const result = await louvorApi('agenda', 'GET', null, `&month=${encodeURIComponent(agendaMonth)}`);
+    agendaEvents = result.events || [];
+    $('agendaEmptyState').querySelector('h3').textContent = 'Nenhuma escala encontrada neste mês';
+    $('agendaEmptyState').querySelector('p').textContent = 'Quando seu nome estiver vinculado a uma escala futura, ela aparecerá aqui. Se você deveria estar escalado, peça a um responsável para conferir o vínculo da sua conta na escala.';
+    const groups = ministryGroups;
+    const filter = $('agendaGroupFilter');
+    const previous = filter.value;
+    filter.innerHTML = '<option value="">Todos os meus grupos</option>' + groups.map(group => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join('');
+    filter.value = groups.some(group => group.id === previous) ? previous : '';
+    renderAgenda();
+  } catch (error) {
+    $('agendaList').replaceChildren(); $('agendaList').hidden = true; $('agendaEmptyState').hidden = false;
+    $('agendaEmptyState').querySelector('h3').textContent = 'Não foi possível carregar sua agenda';
+    $('agendaEmptyState').querySelector('p').textContent = error.message;
+  }
+  $('agendaPreviousMonth').disabled = agendaMonth <= monthKey(new Date());
+}
+function renderAgenda() {
+  const selectedGroupId = $('agendaGroupFilter').value;
+  const events = agendaEvents.filter(event => !selectedGroupId || event.group.id === selectedGroupId);
+  $('agendaList').innerHTML = events.map(event => {
+    const date = new Date(`${event.service_date}T12:00:00`);
+    const isToday = event.service_date === localDateKey(new Date());
+    const day = date.toLocaleDateString('pt-BR', { day: '2-digit' });
+    const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+    return `<article class="agenda-event ${isToday ? 'is-today' : ''}"><div class="agenda-date"><strong>${day}</strong><span>${escapeHtml(month)}</span></div><div class="agenda-event-main"><span class="section-kicker">${escapeHtml(event.group.name)}</span><h3>${escapeHtml(weekday)}${isToday ? ' · Hoje' : ''}</h3><p>${escapeHtml(event.theme || 'Tema a definir')}</p></div><button class="button-outline" data-agenda-service="${escapeHtml(event.id)}" data-agenda-group="${escapeHtml(event.group_id)}" type="button">Ver repertório <span aria-hidden="true">→</span></button></article>`;
+  }).join('');
+  $('agendaEmptyState').hidden = events.length > 0;
+  $('agendaList').hidden = events.length === 0;
+  $('agendaList').querySelectorAll('[data-agenda-service]').forEach(button => button.addEventListener('click', () => openAgendaService(button.dataset.agendaService, button.dataset.agendaGroup)));
+}
+async function openAgendaService(serviceId, groupId) {
+  const group = ministryGroups.find(item => item.id === groupId);
+  if (!group) return message('Este grupo não está mais disponível para sua conta.');
+  closeMobileMenu();
+  await openGroup(group);
+  await openService(serviceId);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 function renderServiceDetail(service) {
   currentService = service;
   const singers = service.people.filter(person => person.role === 'singer').map(person => `<li>${escapeHtml(person.name)}</li>`).join('') || '<li>A definir</li>';
@@ -621,6 +723,8 @@ function readServiceSongRows() {
 }
 async function openServiceEditor(service = null, draft = null) {
   if (!service && !draft && !canGroup('create')) return message('Você não tem permissão para criar escalas neste grupo.');
+  servicePersonSelections.singer.clear(); servicePersonSelections.musician.clear();
+  (service?.people || []).filter(row => row.profile_id).forEach(row => servicePersonSelections[row.role === 'musician' ? 'musician' : 'singer'].set(normalizedText(row.name), row.profile_id));
   $('serviceId').value = service?.id || '';
   $('serviceDate').value = service?.service_date || draft?.service_date || defaultServiceDate(selectedGroup);
   $('serviceTheme').value = service?.theme || draft?.theme || '';
@@ -630,7 +734,9 @@ async function openServiceEditor(service = null, draft = null) {
   renderServiceSongRows(service?.songs || draft?.songs || []);
   $('serviceEditorTitle').textContent = service ? 'Editar escala' : 'Nova escala';
   $('serviceDetail').hidden = true; $('servicesList').hidden = false; $('serviceEditorWrap').hidden = false;
-  await loadSongs(); fillSongPicker();
+  await Promise.all([loadSongs(), loadGroupPeople(selectedGroup.id)]);
+  renderServicePersonLinks('singer'); renderServicePersonLinks('musician');
+  fillSongPicker();
   $('serviceEditorWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function fillSongPicker() { $('songCatalogPicker').innerHTML = '<option value="">Selecione uma música</option>' + songCatalog.map(song => `<option value="${escapeHtml(song.id)}">${escapeHtml(song.title)}${song.artist ? ` — ${escapeHtml(song.artist)}` : ''}</option>`).join(''); }
@@ -639,8 +745,7 @@ async function saveServiceForm(event) {
   const id = $('serviceId').value;
   const songs = readServiceSongRows();
   if (songs.length > 8) return message('Cada escala pode ter no máximo oito músicas.');
-  const names = input => input.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
-  const body = { id, group_id: selectedGroup.id, service_date: $('serviceDate').value, theme: $('serviceTheme').value.trim(), people: [...names($('serviceSingers').value).map(name => ({ role: 'singer', name })), ...names($('serviceMusicians').value).map(name => ({ role: 'musician', name }))], songs };
+  const body = { id, group_id: selectedGroup.id, service_date: $('serviceDate').value, theme: $('serviceTheme').value.trim(), people: [...servicePersonRows('singer', $('serviceSingers').value), ...servicePersonRows('musician', $('serviceMusicians').value)], songs };
   const button = $('serviceForm').querySelector('button[type="submit"]'); button.disabled = true;
   try { await louvorApi('service', id ? 'PATCH' : 'POST', body); $('serviceEditorWrap').hidden = true; await loadServices(); message('Escala salva no banco de dados.', true); }
   catch (error) { message(error.message); }
@@ -859,16 +964,20 @@ function parseRepertoireText(text) {
   if (drafts.some(draft => draft.songs.length > 8)) throw new Error('Uma semana tem mais de oito músicas. Reduza o repertório antes de salvar.');
   return drafts;
 }
-function renderImportPreview() {
+async function renderImportPreview() {
   importDraft = parseRepertoireText($('repertoireText').value);
+  const groupIdsForPeople = [...new Set(importDraft.map(draft => draft.group_id))];
+  await Promise.all(groupIdsForPeople.map(groupId => loadGroupPeople(groupId)));
   const months = [...new Set(importDraft.map(draft => draft.service_date.slice(0, 7)))];
   const monthLabels = months.map(key => { const [year, month] = key.split('-').map(Number); return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); });
   const monthLabel = monthLabels.join(' · ');
   const groupLabels = [...new Set(importDraft.map(draft => ministryGroups.find(group => group.id === draft.group_id)?.name || 'Grupo selecionado'))];
   const totalSongs = importDraft.reduce((total, draft) => total + draft.songs.length, 0);
+  const unlinked = importDraft.reduce((count, draft) => count + [...draft.singers, ...draft.musicians].filter(name => !matchProfileId(name, draft.group_id)).length, 0);
   const duplicateDates = importDraft.filter((draft, index, all) => all.findIndex(row => row.group_id === draft.group_id && row.service_date === draft.service_date) !== index);
   const warning = duplicateDates.length ? `<p class="import-warning">Há datas repetidas no mesmo grupo. Revise o arquivo antes de salvar.</p>` : '';
-  $('importPreview').innerHTML = `<div class="import-preview-summary"><span class="section-kicker">ETAPA 2 DE 2 · REVISE ANTES DE SALVAR</span><h4>${escapeHtml(groupLabels.join(' + '))} · ${escapeHtml(monthLabel)}</h4><p>${importDraft.length} escalas · ${totalSongs} músicas · datas e grupos identificados pelo cabeçalho de cada bloco</p>${warning}</div>${importDraft.map(draft => { const groupName = ministryGroups.find(group => group.id === draft.group_id)?.name || 'Grupo'; return `<article class="import-preview-card"><h4>${escapeHtml(groupName)} · ${escapeHtml(formatServiceDate(draft.service_date))}${draft.theme ? ` · ${escapeHtml(draft.theme)}` : ''}</h4><p><strong>Cantores:</strong> ${draft.singers.map(escapeHtml).join(', ') || 'não informados'} · <strong>Músicos:</strong> ${draft.musicians.map(escapeHtml).join(', ') || 'não informados'}</p><p><strong>Músicas (${draft.songs.length}):</strong> ${draft.songs.map(song => escapeHtml(song.title_snapshot)).join(' · ') || 'não informadas'}</p></article>`; }).join('')}`;
+  const linkNotice = unlinked ? `<p class="import-link-warning">${unlinked} nome(s) não foram vinculados automaticamente a uma conta. A escala será importada normalmente; edite-a depois para associar esses nomes se forem integrantes cadastrados.</p>` : `<p class="import-link-success">Todos os nomes de cantores e músicos foram associados automaticamente às contas correspondentes.</p>`;
+  $('importPreview').innerHTML = `<div class="import-preview-summary"><span class="section-kicker">ETAPA 2 DE 2 · REVISE ANTES DE SALVAR</span><h4>${escapeHtml(groupLabels.join(' + '))} · ${escapeHtml(monthLabel)}</h4><p>${importDraft.length} escalas · ${totalSongs} músicas · datas e grupos identificados pelo cabeçalho de cada bloco</p>${warning}${linkNotice}</div>${importDraft.map(draft => { const groupName = ministryGroups.find(group => group.id === draft.group_id)?.name || 'Grupo'; return `<article class="import-preview-card"><h4>${escapeHtml(groupName)} · ${escapeHtml(formatServiceDate(draft.service_date))}${draft.theme ? ` · ${escapeHtml(draft.theme)}` : ''}</h4><p><strong>Cantores:</strong> ${draft.singers.map(escapeHtml).join(', ') || 'não informados'} · <strong>Músicos:</strong> ${draft.musicians.map(escapeHtml).join(', ') || 'não informados'}</p><p><strong>Músicas (${draft.songs.length}):</strong> ${draft.songs.map(song => escapeHtml(song.title_snapshot)).join(' · ') || 'não informadas'}</p></article>`; }).join('')}`;
   $('importPreview').hidden = false; $('saveImportButton').disabled = duplicateDates.length > 0;
   if (duplicateDates.length) message('A prévia encontrou datas repetidas para o mesmo grupo. Corrija o arquivo antes de salvar.');
 }
@@ -880,6 +989,7 @@ async function saveImportDraft() {
     const existingByKey = new Map();
     const groupIds = [...new Set(importDraft.map(draft => draft.group_id))];
     for (const groupId of groupIds) {
+      await loadGroupPeople(groupId);
       const existing = await louvorApi('services', 'GET', null, `&group_id=${encodeURIComponent(groupId)}`);
       (existing.services || []).forEach(service => existingByKey.set(`${groupId}:${service.service_date}`, service));
     }
@@ -891,7 +1001,7 @@ async function saveImportDraft() {
         return found ? { ...song, song_id: found.id, artist_snapshot: song.artist_snapshot || found.artist, male_key_snapshot: found.male_key, female_key_snapshot: found.female_key, youtube_url_snapshot: found.youtube_url, chart_url_snapshot: found.chart_url } : song;
       });
       const old = existingByKey.get(`${draft.group_id}:${draft.service_date}`);
-      await louvorApi('service', old ? 'PATCH' : 'POST', { ...draft, ...(old ? { id: old.id } : {}), people: [...draft.singers.map(name => ({ role: 'singer', name })), ...draft.musicians.map(name => ({ role: 'musician', name }))] });
+      await louvorApi('service', old ? 'PATCH' : 'POST', { ...draft, ...(old ? { id: old.id } : {}), people: [...draft.singers.map(name => ({ role: 'singer', name, profile_id: matchProfileId(name, draft.group_id) })), ...draft.musicians.map(name => ({ role: 'musician', name, profile_id: matchProfileId(name, draft.group_id) }))] });
     }
     const importedCount = importDraft.length;
     $('importWrap').hidden = true; $('repertoireText').value = ''; $('repertoireFile').value = ''; $('importPreview').hidden = true; await loadGroups(); message(`${importedCount} escalas importadas. Complete os links, tons e músicas pendentes.`, true); importDraft = [];
@@ -899,9 +1009,14 @@ async function saveImportDraft() {
   finally { $('saveImportButton').disabled = false; }
 }
 function activatePanelSection(id) {
-  const sections = ['groupsSection','servicesSection','songsSection','userAdminSection'];
-  sections.forEach(section => { if (section === 'userAdminSection' && !canSeeUsers()) $(section).hidden = true; else $(section).hidden = section !== id; });
+  const sections = ['groupsSection','agendaSection','servicesSection','songsSection','userAdminSection'];
+  sections.forEach(section => {
+    if (section === 'userAdminSection' && !canSeeUsers()) $(section).hidden = true;
+    else if (section === 'agendaSection' && !canSeeAgenda()) $(section).hidden = true;
+    else $(section).hidden = section !== id;
+  });
   document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${id}`));
+  if (id === 'agendaSection') loadAgenda();
   if (id === 'songsSection') loadSongs($('songSearch').value.trim()).catch(error => message(error.message));
   if (id === 'userAdminSection') loadUsers().catch(error => message(error.message));
 }
@@ -924,6 +1039,7 @@ function setupDashboard() {
   $('saveNotesButton').addEventListener('click', saveGeneralNotes);
   $('usersNavLink').hidden = !canSeeUsers();
   $('groupsNavLink').hidden = !canSeeGroups();
+  $('agendaNavLink').hidden = !canSeeAgenda();
   $('songsNavLink').hidden = !canSeeSongs();
   $('mobileMenuButton').addEventListener('click', () => document.body.classList.contains('mobile-menu-open') ? closeMobileMenu() : openMobileMenu());
   $('mobileMenuClose').addEventListener('click', closeMobileMenu);
@@ -946,6 +1062,7 @@ function setupDashboard() {
   $('usersList').addEventListener('click', handleUserAction);
   $('copyTemporaryPassword').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('temporaryPasswordText').textContent); message('Senha copiada. Entregue-a diretamente ao usuário.', true); } catch { message('Não foi possível copiar automaticamente. Selecione e copie a senha.'); } });
   $('groupsNavLink').addEventListener('click', event => { event.preventDefault(); selectedGroup = null; activatePanelSection('groupsSection'); loadGroups().catch(error => message(error.message)); });
+  $('agendaNavLink').addEventListener('click', event => { event.preventDefault(); activatePanelSection('agendaSection'); });
   $('songsNavLink').addEventListener('click', event => { event.preventDefault(); activatePanelSection('songsSection'); });
   document.querySelectorAll('.sidebar .nav-link').forEach(link => link.addEventListener('click', closeMobileMenu));
   $('userSearch').addEventListener('input', renderUsers);
@@ -962,6 +1079,11 @@ function setupDashboard() {
   $('emptyNewServiceButton').addEventListener('click', () => openServiceEditor());
   $('serviceMonth').addEventListener('change', () => renderServices(groupServices));
   $('serviceForm').addEventListener('submit', saveServiceForm);
+  $('serviceSingers').addEventListener('input', () => renderServicePersonLinks('singer'));
+  $('serviceMusicians').addEventListener('input', () => renderServicePersonLinks('musician'));
+  $('agendaPreviousMonth').addEventListener('click', () => { if (agendaMonth <= monthKey(new Date())) return; const [year, month] = agendaMonth.split('-').map(Number); const previous = new Date(year, month - 2, 1); agendaMonth = monthKey(previous); loadAgenda(); });
+  $('agendaNextMonth').addEventListener('click', () => { const [year, month] = agendaMonth.split('-').map(Number); agendaMonth = monthKey(new Date(year, month, 1)); loadAgenda(); });
+  $('agendaGroupFilter').addEventListener('change', renderAgenda);
   $('cancelServiceButton').addEventListener('click', () => closeEditor('serviceEditorWrap', 'serviceForm'));
   $('cancelServiceBottomButton').addEventListener('click', () => closeEditor('serviceEditorWrap', 'serviceForm'));
   $('addCatalogSongButton').addEventListener('click', () => { const song = songCatalog.find(row => row.id === $('songCatalogPicker').value); if (song) addServiceSong(song); });
@@ -977,7 +1099,7 @@ function setupDashboard() {
   $('importRepertoireButton').addEventListener('click', () => { $('importWrap').hidden = false; $('importRepertoireButton').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   $('closeImportButton').addEventListener('click', () => closeEditor('importWrap'));
   $('repertoireFile').addEventListener('change', async event => { const file = event.target.files?.[0]; if (file) $('repertoireText').value = await file.text(); });
-  $('previewImportButton').addEventListener('click', () => { try { renderImportPreview(); } catch (error) { $('importPreview').hidden = true; $('saveImportButton').disabled = true; message(error.message); } });
+  $('previewImportButton').addEventListener('click', async () => { try { await renderImportPreview(); } catch (error) { $('importPreview').hidden = true; $('saveImportButton').disabled = true; message(error.message); } });
   $('saveImportButton').addEventListener('click', saveImportDraft);
   const startSection = canSeeGroups() ? 'groupsSection' : canSeeSongs() ? 'songsSection' : canSeeUsers() ? 'userAdminSection' : 'groupsSection';
   activatePanelSection(startSection);

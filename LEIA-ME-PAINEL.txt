@@ -39,13 +39,14 @@ ANTES DE PUBLICAR ESTA VERSÃO
 1. No Supabase, confirme que `supabase/etapa8-persistencia.sql` já foi executado.
 2. Se ainda não foi executada, execute `supabase/etapa9-usuarios-permissoes.sql`.
 3. Execute uma vez `supabase/etapa10-escalas-repertorios.sql`. Ela cria o catálogo musical, escalas, equipes, repertórios e snapshots; também adiciona o dia habitual aos grupos e cadastra os três grupos iniciais se estiverem ausentes.
-4. Confira sucesso no SQL Editor. Não execute migrations de novo como forma de corrigir erro parcial sem antes conferir o resultado.
-5. `api/users.js` e `api/louvor.js` usam `SUPABASE_SECRET_KEY` somente no servidor. Não conceda as novas tabelas a `anon` ou `authenticated`, nem exponha essa chave ao navegador.
-6. Mantenha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida.
+4. Execute uma vez `supabase/etapa11-minha-agenda.sql`, depois da etapa 10. Ela adiciona o vínculo opcional de conta às pessoas escaladas e atualiza o RPC que salva a escala.
+5. Confira sucesso no SQL Editor. Não execute migrations de novo como forma de corrigir erro parcial sem antes conferir o resultado.
+6. `api/users.js` e `api/louvor.js` usam `SUPABASE_SECRET_KEY` somente no servidor. Não conceda as novas tabelas a `anon` ou `authenticated`, nem exponha essa chave ao navegador.
+7. Mantenha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida.
 
 PUBLICAÇÃO
-- Atualize `api/`, `painel-louvor/`, `images/painel/` e `supabase/`; mantenha as migrations das etapas 8, 9 e 10 no repositório. A pasta `images/painel/` é necessária para os ícones dos grupos.
-- A atualização de experiência não adiciona tabelas nem exige executar SQL novamente. A API `api/louvor.js` passou a devolver a próxima escala permitida em cada card de grupo.
+- Atualize `api/`, `painel-louvor/`, `images/painel/` e `supabase/`; mantenha as migrations das etapas 8, 9, 10 e 11 no repositório. A pasta `images/painel/` é necessária para os ícones dos grupos.
+- As melhorias da Etapa 11 exigem executar uma migration adicional antes de publicar; as melhorias visuais não exigem SQL.
 - A página pública existente (`index.html`, `script.js` e `styles.css`) não é alterada por este pacote.
 - A biblioteca antiga da Etapa 8 continua usando a chave publicável e o token do usuário, com RLS.
 - Escalas, equipes e a nova biblioteca musical passam pelo endpoint server-side `/api/louvor.js`, que valida sessão e permissões antes de acessar o banco.
@@ -67,6 +68,14 @@ IMPORTAÇÃO DE QUINTAS E EBD
 - Essas escalas não exigem semanas nem temas. As datas explícitas são conferidas contra o dia indicado; os domingos são direcionados à EBD para não misturar com o Culto Público.
 - A área ilustrada do login ganhou altura para evitar corte, e o detalhe do repertório agora oferece “Voltar às escalas” no topo e também no final da página.
 
+ETAPA 11 — MINHA AGENDA E VÍNCULO DE INTEGRANTES
+- Execute uma vez `supabase/etapa11-minha-agenda.sql`, depois das etapas 8, 9 e 10. A migration adiciona `service_people.profile_id`, um índice e substitui o RPC de gravação de escalas para persistir o vínculo. Ela associa nomes antigos quando há uma única correspondência normalizada (ignorando caixa, acentos e espaços repetidos); nomes ambíguos permanecem sem vínculo para revisão manual.
+- A navegação “Minha agenda” lista as escalas futuras do mês em que a conta atual está vinculada e permite abrir o repertório. Cada pessoa só recebe resultados de grupos que pode visualizar.
+- Ao criar ou editar uma escala, nomes correspondentes a contas são sugeridos automaticamente. A seção “Vincular nomes às contas para Minha agenda” permite escolher ou corrigir a associação. O vínculo é opcional para convidados e nomes ainda não cadastrados.
+- A importação `.txt` tenta vincular cantores e músicos por nome normalizado e informa na prévia quantos nomes precisam de revisão. Escalas importadas podem ser editadas depois para corrigir os vínculos.
+- A agenda não exibe função/participação; a distinção interna cantor/músico continua apenas no cadastro da escala.
+- Não é necessária uma tabela separada de agenda. A implementação reutiliza `profiles`, `worship_services` e `service_people`.
+
 MODELO DE ACESSO
 - Perfil inativo não acessa o acervo.
 - `system_permissions.library_view/create/edit/delete` controla as operações gerais. O owner possui todas as permissões.
@@ -82,5 +91,5 @@ NOTAS
 - O importador associa automaticamente músicas com título equivalente; títulos novos entram na escala como pendentes e podem ser adicionados à biblioteca e completados depois. Confira sempre a prévia, principalmente solistas e artistas indicados entre parênteses.
 - A leitura do mês exige mês e ano juntos no cabeçalho nas primeiras oito linhas; isso evita confundir nomes como “Marcos” com “março”.
 - O importador espera mês/ano no cabeçalho, seções `CANTORES`, `MÚSICOS`, `MÚSICAS` e títulos como `1ª SEMANA – Tema: ...`. A atribuição automática de solistas/artistas deve ser revisada na prévia.
-- Cantores e músicos são gravados como nomes da escala, sem exigir que todos tenham uma conta de login.
-- O pacote não foi conectado ao Supabase e as migrations da Etapa 10 não foram executadas. Nenhuma conta ou dado de produção foi criado, alterado ou removido por este pacote.
+- Cantores e músicos continuam gravados como nomes; a conta pode ser vinculada para exibição na agenda, mas convidados não precisam ter login.
+- A migration da Etapa 11 não foi executada por este pacote. Confirme que as etapas 8, 9 e 10 já foram aplicadas antes de executar a etapa 11. Nenhuma conta ou dado de produção foi alterado por este pacote.
