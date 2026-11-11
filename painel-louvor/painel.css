@@ -192,4 +192,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .person-link-row span{overflow-wrap:anywhere}.person-link-row select{min-width:0;padding:7px 9px!important;font-size:.7rem}
 .import-link-warning,.import-link-success{padding:9px 11px;border-radius:9px;background:#382a1a;color:#f0c983!important;font-size:.74rem!important}
 .import-link-success{background:#17251a;color:#b8f36b!important}
+.song-card-badges{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.song-type-tag{padding:5px 8px;border:1px solid #61d9dd55;border-radius:999px;background:#61d9dd12;color:#8be5e8;font-size:.58rem;font-weight:850;letter-spacing:.07em}
+.song-key-value.optional{border-color:#34433b;background:#101713}
+.song-key-value.optional strong{color:#7f8b84;font-size:.66rem}
+.song-catalog-resources .song-resource-optional{display:inline-flex;align-items:center;padding:7px 10px;border:1px dashed #38433c;border-radius:9px;color:#89968d;font-size:.72rem}
+.hymn-check{margin:0!important;padding:9px 11px;border:1px solid #315156;border-radius:10px;background:#102023}
+.hymn-check span{color:#9be9e8}
 @media(max-width:680px){.agenda-toolbar{display:grid;grid-template-columns:44px 1fr 44px;gap:8px}.agenda-toolbar .agenda-month-label{min-width:0}.agenda-toolbar .filter-box{grid-column:1/-1;margin:0}.agenda-event{grid-template-columns:54px minmax(0,1fr);gap:11px;padding:12px}.agenda-event>button{grid-column:1/-1;width:100%}.person-link-row{grid-template-columns:1fr}.person-link-row select{width:100%}}

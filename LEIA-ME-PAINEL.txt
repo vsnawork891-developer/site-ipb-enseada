@@ -40,13 +40,14 @@ ANTES DE PUBLICAR ESTA VERSÃO
 2. Se ainda não foi executada, execute `supabase/etapa9-usuarios-permissoes.sql`.
 3. Execute uma vez `supabase/etapa10-escalas-repertorios.sql`. Ela cria o catálogo musical, escalas, equipes, repertórios e snapshots; também adiciona o dia habitual aos grupos e cadastra os três grupos iniciais se estiverem ausentes.
 4. Execute uma vez `supabase/etapa11-minha-agenda.sql`, depois da etapa 10. Ela adiciona o vínculo opcional de conta às pessoas escaladas e atualiza o RPC que salva a escala.
-5. Confira sucesso no SQL Editor. Não execute migrations de novo como forma de corrigir erro parcial sem antes conferir o resultado.
-6. `api/users.js` e `api/louvor.js` usam `SUPABASE_SECRET_KEY` somente no servidor. Não conceda as novas tabelas a `anon` ou `authenticated`, nem exponha essa chave ao navegador.
-7. Mantenha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida.
+5. Execute uma vez `supabase/etapa12-regra-completude-hinos.sql`. Ela adiciona a classificação explícita de hino ao catálogo.
+6. Confira sucesso no SQL Editor. Não execute migrations de novo como forma de corrigir erro parcial sem antes conferir o resultado.
+7. `api/users.js` e `api/louvor.js` usam `SUPABASE_SECRET_KEY` somente no servidor. Não conceda as novas tabelas a `anon` ou `authenticated`, nem exponha essa chave ao navegador.
+8. Mantenha `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SECRET_KEY` em Production. `PANEL_BOOTSTRAP_SECRET` deve permanecer removida.
 
 PUBLICAÇÃO
-- Atualize `api/`, `painel-louvor/`, `images/painel/` e `supabase/`; mantenha as migrations das etapas 8, 9, 10 e 11 no repositório. A pasta `images/painel/` é necessária para os ícones dos grupos.
-- As melhorias da Etapa 11 exigem executar uma migration adicional antes de publicar; as melhorias visuais não exigem SQL.
+- Atualize `api/`, `painel-louvor/`, `images/painel/` e `supabase/`; mantenha as migrations das etapas 8 a 12 no repositório. A pasta `images/painel/` é necessária para os ícones dos grupos.
+- As melhorias das Etapas 11 e 12 exigem executar suas migrations antes de publicar; as melhorias visuais não exigem SQL.
 - A página pública existente (`index.html`, `script.js` e `styles.css`) não é alterada por este pacote.
 - A biblioteca antiga da Etapa 8 continua usando a chave publicável e o token do usuário, com RLS.
 - Escalas, equipes e a nova biblioteca musical passam pelo endpoint server-side `/api/louvor.js`, que valida sessão e permissões antes de acessar o banco.
@@ -71,10 +72,20 @@ IMPORTAÇÃO DE QUINTAS E EBD
 ETAPA 11 — MINHA AGENDA E VÍNCULO DE INTEGRANTES
 - Execute uma vez `supabase/etapa11-minha-agenda.sql`, depois das etapas 8, 9 e 10. A migration adiciona `service_people.profile_id`, um índice e substitui o RPC de gravação de escalas para persistir o vínculo. Ela associa nomes antigos quando há uma única correspondência normalizada (ignorando caixa, acentos e espaços repetidos); nomes ambíguos permanecem sem vínculo para revisão manual.
 - A navegação “Minha agenda” lista as escalas futuras do mês em que a conta atual está vinculada e permite abrir o repertório. Cada pessoa só recebe resultados de grupos que pode visualizar.
+- Ao entrar em um grupo, a tela volta ao mês atual. Se a próxima escala do mês atual não vier na lista inicial, o painel tenta carregar novamente e recupera a escala pelo identificador, quando permitido.
+- Ao abrir o detalhe do repertório, falhas de rede ou erro temporário do servidor geram uma única nova tentativa. Erros de permissão e escalas inexistentes não são repetidos.
 - Ao criar ou editar uma escala, nomes correspondentes a contas são sugeridos automaticamente. A seção “Vincular nomes às contas para Minha agenda” permite escolher ou corrigir a associação. O vínculo é opcional para convidados e nomes ainda não cadastrados.
 - A importação `.txt` tenta vincular cantores e músicos por nome normalizado e informa na prévia quantos nomes precisam de revisão. Escalas importadas podem ser editadas depois para corrigir os vínculos.
 - A agenda não exibe função/participação; a distinção interna cantor/músico continua apenas no cadastro da escala.
 - Não é necessária uma tabela separada de agenda. A implementação reutiliza `profiles`, `worship_services` e `service_people`.
+
+ETAPA 12 — COMPLETUDE DA BIBLIOTECA E HINOS
+- Execute uma vez `supabase/etapa12-regra-completude-hinos.sql` depois da Etapa 10. A coluna `songs_catalog.is_hymn` é booleana e assume `false` nos registros existentes.
+- Músicas comuns ficam completas somente com título, artista/ministério, compositor, tema, tons masculino e feminino, YouTube e cifra. Qualquer campo ausente mantém o status Pendente.
+- Hinos ficam completos com título, tema e YouTube. Artista, compositor, tons e cifra são opcionais para esta classificação.
+- Ao marcar uma música como hino, o campo Artista / ministério é preenchido automaticamente com “Hinário” e fica bloqueado enquanto a opção estiver ativa. A API também aplica esse valor ao salvar.
+- Marque “Esta música é um hino” ao cadastrar ou editar um hino. Registros antigos não são classificados automaticamente; revise e marque os hinos já existentes na biblioteca.
+- O filtro Completas/Pendentes usa a regra correspondente ao tipo, e o cartão identifica hinos visualmente.
 
 MODELO DE ACESSO
 - Perfil inativo não acessa o acervo.

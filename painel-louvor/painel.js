@@ -141,7 +141,7 @@ async function appApi(path, options = {}) {
     headers: { ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}), ...(options.headers || {}) }
   });
   const data = await parseResponse(response, 'O servidor do painel retornou uma resposta inválida.');
-  if (!response.ok) throw new Error(data?.error || 'Não foi possível concluir a operação.');
+  if (!response.ok) throw Object.assign(new Error(data?.error || 'Não foi possível concluir a operação.'), { status: response.status });
   return data;
 }
 function groupName(id) { return profile?.groups?.find(group => group.id === id)?.name || 'grupo com acesso restrito'; }
@@ -563,6 +563,7 @@ function fillMonthOptions(services = []) {
 async function openGroup(group) {
   selectedGroup = group;
   $('groupsSection').hidden = true; $('agendaSection').hidden = true; $('servicesSection').hidden = false; $('songsSection').hidden = true;
+  $('serviceMonth').value = '';
   $('serviceGroupTitle').textContent = group.name;
   $('serviceGroupKicker').textContent = group.name.toLocaleUpperCase('pt-BR');
   $('newServiceButton').hidden = !canGroup('create', group);
@@ -571,8 +572,21 @@ async function openGroup(group) {
   try { await loadSongs(); await loadServices(); } catch (error) { message(error.message); }
 }
 async function loadServices() {
-  const result = await louvorApi('services', 'GET', null, `&group_id=${encodeURIComponent(selectedGroup.id)}`);
+  const groupId = selectedGroup.id;
+  const query = `&group_id=${encodeURIComponent(groupId)}`;
+  let result = await louvorApi('services', 'GET', null, query);
   groupServices = result.services || [];
+  const expected = selectedGroup.next_service;
+  const currentMonth = monthKey(new Date());
+  if (expected && String(expected.service_date).startsWith(currentMonth) && !groupServices.some(service => service.id === expected.id)) {
+    await new Promise(resolve => window.setTimeout(resolve, 300));
+    result = await louvorApi('services', 'GET', null, query);
+    groupServices = result.services || [];
+    if (!groupServices.some(service => service.id === expected.id)) {
+      const recovered = await louvorApi('service', 'GET', null, `&id=${encodeURIComponent(expected.id)}`);
+      if (recovered.service) groupServices.push(recovered.service);
+    }
+  }
   fillMonthOptions(groupServices);
   renderServices(groupServices);
 }
@@ -615,10 +629,22 @@ function defaultServiceDate(group) {
 }
 function localDateKey(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 async function openService(id) {
-  try {
-    const result = await louvorApi('service', 'GET', null, `&id=${encodeURIComponent(id)}`);
-    renderServiceDetail(result.service);
-  } catch (error) { message(error.message); }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await louvorApi('service', 'GET', null, `&id=${encodeURIComponent(id)}`);
+      if (!result?.service) throw Object.assign(new Error('O repertório não veio completo do servidor.'), { status: 502 });
+      renderServiceDetail(result.service);
+      return;
+    } catch (error) {
+      const retryable = !error.status || error.status >= 500;
+      if (attempt === 0 && retryable) {
+        await new Promise(resolve => window.setTimeout(resolve, 350));
+        continue;
+      }
+      message(error.message);
+      return;
+    }
+  }
 }
 function agendaMonthText(month) {
   const [year, monthNumber] = month.split('-').map(Number);
@@ -781,21 +807,42 @@ function renderSongCatalog() {
     const youtube = safeExternalUrl(song.youtube_url); const chart = safeExternalUrl(song.chart_url);
     const missing = songMissingFields(song);
     const themesMarkup = String(song.themes || '').split(/[,;]/).map(theme => theme.trim()).filter(Boolean).map(theme => `<span class="song-theme-chip">${escapeHtml(theme)}</span>`).join('');
-    const keyMarkup = (label, value) => `<div class="song-key-value ${value ? '' : 'pending'}"><small>${label}</small><strong>${escapeHtml(value || 'A definir')}</strong></div>`;
     card.classList.toggle('song-incomplete', missing.length > 0);
-    card.innerHTML = `<div class="song-card-heading"><div><h3>${escapeHtml(song.title)}</h3><p>${escapeHtml(song.artist || 'Artista a definir')}${song.composer ? ` · Compositor: ${escapeHtml(song.composer)}` : ''}</p></div><span class="song-completeness ${missing.length ? 'pending' : 'complete'}">${missing.length ? 'Completar dados' : 'Completa'}</span></div><div class="song-theme-list">${themesMarkup || '<span class="muted small">Sem temas</span>'}</div><div class="song-key-grid">${keyMarkup('Tom masculino', song.male_key)}${keyMarkup('Tom feminino', song.female_key)}</div><div class="song-catalog-resources">${youtube ? `<a class="song-resource-link" href="${escapeHtml(youtube)}" target="_blank" rel="noopener">▶ YouTube</a>` : '<span class="song-resource-pending">YouTube pendente</span>'}${chart ? `<a class="song-resource-link" href="${escapeHtml(chart)}" target="_blank" rel="noopener">♫ Cifra</a>` : '<span class="song-resource-pending">Cifra pendente</span>'}</div>${missing.length ? `<p class="song-missing-hint">Faltam: ${escapeHtml(missing.join(', '))}</p>` : ''}<div class="tile-actions">${canSongModule('edit') ? '<button class="button-outline" data-song-action="edit" type="button">Editar dados</button>' : ''}${canSongModule('delete') ? '<button class="button-quiet" data-song-action="delete" type="button">Excluir</button>' : ''}</div>`;
+    const artistLabel = song.is_hymn ? [song.artist, song.composer ? `Compositor: ${song.composer}` : ''].filter(Boolean).join(' · ') : `${song.artist || 'Artista a definir'}${song.composer ? ` · Compositor: ${song.composer}` : ''}`;
+    const keyMarkup = (label, value) => `<div class="song-key-value ${value ? '' : song.is_hymn ? 'optional' : 'pending'}"><small>${label}</small><strong>${escapeHtml(value || (song.is_hymn ? 'Opcional para hinos' : 'A definir'))}</strong></div>`;
+    card.innerHTML = `<div class="song-card-heading"><div><h3>${escapeHtml(song.title)}</h3><p>${escapeHtml(artistLabel || (song.is_hymn ? 'Hino' : 'Artista a definir'))}</p></div><div class="song-card-badges">${song.is_hymn ? '<span class="song-type-tag">HINO</span>' : ''}<span class="song-completeness ${missing.length ? 'pending' : 'complete'}">${missing.length ? 'Pendente' : 'Completa'}</span></div></div><div class="song-theme-list">${themesMarkup || '<span class="muted small">Sem tema</span>'}</div><div class="song-key-grid">${keyMarkup('Tom masculino', song.male_key)}${keyMarkup('Tom feminino', song.female_key)}</div><div class="song-catalog-resources">${youtube ? `<a class="song-resource-link" href="${escapeHtml(youtube)}" target="_blank" rel="noopener">▶ YouTube</a>` : '<span class="song-resource-pending">YouTube pendente</span>'}${chart ? `<a class="song-resource-link" href="${escapeHtml(chart)}" target="_blank" rel="noopener">♫ Cifra</a>` : `<span class="song-resource-${song.is_hymn ? 'optional' : 'pending'}">Cifra ${song.is_hymn ? 'opcional para hinos' : 'pendente'}</span>`}</div>${missing.length ? `<p class="song-missing-hint">Faltam: ${escapeHtml(missing.join(', '))}</p>` : ''}<div class="tile-actions">${canSongModule('edit') ? '<button class="button-outline" data-song-action="edit" type="button">Editar dados</button>' : ''}${canSongModule('delete') ? '<button class="button-quiet" data-song-action="delete" type="button">Excluir</button>' : ''}</div>`;
     card.querySelector('[data-song-action="edit"]')?.addEventListener('click', () => openSongForm(song));
     card.querySelector('[data-song-action="delete"]')?.addEventListener('click', async () => { if (!window.confirm(`Excluir ${song.title} da biblioteca? Escalas antigas mantêm seus dados.`)) return; try { await louvorApi('songs', 'DELETE', { id: song.id }); await loadSongs($('songSearch').value.trim()); message('Música excluída da biblioteca.', true); } catch (error) { message(error.message); } });
     list.append(card);
   });
 }
-function songMissingFields(song) { return [['Tom masculino', song.male_key], ['Tom feminino', song.female_key], ['YouTube', song.youtube_url], ['cifra', song.chart_url]].filter(([, value]) => !String(value || '').trim()).map(([label]) => label); }
+function songMissingFields(song) {
+  if (song.is_hymn) return [['Tema', song.themes], ['YouTube', song.youtube_url]].filter(([, value]) => !String(value || '').trim()).map(([label]) => label);
+  return [['Artista / ministério', song.artist], ['Compositor', song.composer], ['Tema', song.themes], ['Tom masculino', song.male_key], ['Tom feminino', song.female_key], ['YouTube', song.youtube_url], ['Cifra', song.chart_url]].filter(([, value]) => !String(value || '').trim()).map(([label]) => label);
+}
+function syncHymnArtistField() {
+  const artist = $('songArtist');
+  if ($('songIsHymn').checked) {
+    if (artist.dataset.hymnAutofilled !== 'true') artist.dataset.hymnPrevious = artist.value.trim().toLocaleLowerCase('pt-BR') === 'hinário' ? '' : artist.value;
+    artist.value = 'Hinário';
+    artist.disabled = true;
+    artist.dataset.hymnAutofilled = 'true';
+  } else {
+    artist.disabled = false;
+    if (artist.dataset.hymnAutofilled === 'true') artist.value = artist.dataset.hymnPrevious || '';
+    artist.dataset.hymnAutofilled = 'false';
+    delete artist.dataset.hymnPrevious;
+  }
+}
 function openSongForm(song = null, fromService = false, serviceRowIndex = null) {
   returnToServiceEditor = fromService;
   returnToServiceRow = serviceRowIndex;
   $('songId').value = song?.id || ''; $('songTitle').value = song?.title || ''; $('songArtist').value = song?.artist || ''; $('songComposer').value = song?.composer || '';
+  $('songIsHymn').checked = song?.is_hymn === true;
   $('songThemes').value = song?.themes || ''; $('songMaleKey').value = song?.male_key || ''; $('songFemaleKey').value = song?.female_key || '';
   $('songYoutube').value = song?.youtube_url || ''; $('songChart').value = song?.chart_url || '';
+  $('songArtist').dataset.hymnAutofilled = 'false'; delete $('songArtist').dataset.hymnPrevious;
+  syncHymnArtistField();
   $('songForm').dataset.dirty = 'false';
   $('songFormTitle').textContent = song ? 'Editar música' : 'Nova música'; $('songFormWrap').hidden = false;
   if (fromService) { $('servicesSection').hidden = true; $('songsSection').hidden = false; }
@@ -809,7 +856,8 @@ function closeSongEditor() {
 }
 async function saveSongForm(event) {
   event.preventDefault(); const id = $('songId').value;
-  const body = { id, title: $('songTitle').value.trim(), artist: $('songArtist').value.trim(), composer: $('songComposer').value.trim(), themes: $('songThemes').value.trim(), male_key: $('songMaleKey').value.trim(), female_key: $('songFemaleKey').value.trim(), youtube_url: $('songYoutube').value.trim(), chart_url: $('songChart').value.trim() };
+  const isHymn = $('songIsHymn').checked;
+  const body = { id, title: $('songTitle').value.trim(), is_hymn: isHymn, artist: isHymn ? 'Hinário' : $('songArtist').value.trim(), composer: $('songComposer').value.trim(), themes: $('songThemes').value.trim(), male_key: $('songMaleKey').value.trim(), female_key: $('songFemaleKey').value.trim(), youtube_url: $('songYoutube').value.trim(), chart_url: $('songChart').value.trim() };
   const button = $('songForm').querySelector('button[type="submit"]'); button.disabled = true;
   try {
     const result = await louvorApi('songs', id ? 'PATCH' : 'POST', body); $('songFormWrap').hidden = true; await loadSongs($('songSearch').value.trim());
@@ -1094,6 +1142,7 @@ function setupDashboard() {
   $('songThemeFilter').addEventListener('change', renderSongCatalog);
   $('songStatusFilter').addEventListener('change', renderSongCatalog);
   $('songForm').addEventListener('submit', saveSongForm);
+  $('songIsHymn').addEventListener('change', syncHymnArtistField);
   $('cancelSongButton').addEventListener('click', closeSongEditor);
   $('cancelSongBottomButton').addEventListener('click', closeSongEditor);
   $('importRepertoireButton').addEventListener('click', () => { $('importWrap').hidden = false; $('importRepertoireButton').scrollIntoView({ behavior: 'smooth', block: 'center' }); });

@@ -206,13 +206,15 @@ module.exports = async (req, res) => {
         requirePermission(actor, 'library_create', 'Você não tem permissão para cadastrar músicas.');
         const title = cleanText(body.title, 200);
         if (!title) return send(res, 400, { error: 'Informe o título da música.' });
-        const row = { title, artist: cleanText(body.artist, 200), composer: cleanText(body.composer, 200), male_key: cleanText(body.male_key, 40), female_key: cleanText(body.female_key, 40), chart_url: cleanUrl(body.chart_url), youtube_url: cleanUrl(body.youtube_url), themes: cleanText(body.themes, 500), created_by: actor.id, updated_by: actor.id };
+        const isHymn = body.is_hymn === true;
+        const row = { title, is_hymn: isHymn, artist: isHymn ? 'Hinário' : cleanText(body.artist, 200), composer: cleanText(body.composer, 200), male_key: cleanText(body.male_key, 40), female_key: cleanText(body.female_key, 40), chart_url: cleanUrl(body.chart_url), youtube_url: cleanUrl(body.youtube_url), themes: cleanText(body.themes, 500), created_by: actor.id, updated_by: actor.id };
         return send(res, 201, { song: (await rest('songs_catalog', 'POST', row))?.[0] });
       }
       if (req.method === 'PATCH') {
         requirePermission(actor, 'library_edit', 'Você não tem permissão para editar músicas.');
         const id = String(body.id || '');
-        const row = { title: cleanText(body.title, 200), artist: cleanText(body.artist, 200), composer: cleanText(body.composer, 200), male_key: cleanText(body.male_key, 40), female_key: cleanText(body.female_key, 40), chart_url: cleanUrl(body.chart_url), youtube_url: cleanUrl(body.youtube_url), themes: cleanText(body.themes, 500), updated_by: actor.id };
+        const isHymn = body.is_hymn === true;
+        const row = { title: cleanText(body.title, 200), is_hymn: isHymn, artist: isHymn ? 'Hinário' : cleanText(body.artist, 200), composer: cleanText(body.composer, 200), male_key: cleanText(body.male_key, 40), female_key: cleanText(body.female_key, 40), chart_url: cleanUrl(body.chart_url), youtube_url: cleanUrl(body.youtube_url), themes: cleanText(body.themes, 500), updated_by: actor.id };
         return send(res, 200, { song: (await rest(`songs_catalog?id=eq.${encodeURIComponent(id)}`, 'PATCH', row))?.[0] });
       }
       if (req.method === 'DELETE') {
