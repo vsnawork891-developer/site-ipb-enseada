@@ -569,7 +569,7 @@ async function openGroup(group) {
   $('newServiceButton').hidden = !canGroup('create', group);
   $('emptyNewServiceButton').hidden = !canGroup('create', group);
   $('serviceEditorWrap').hidden = true; $('serviceDetail').hidden = true;
-  try { await loadSongs(); await loadServices(); } catch (error) { message(error.message); }
+  try { await loadServices(); } catch (error) { message(error.message); }
 }
 async function loadServices() {
   const groupId = selectedGroup.id;
