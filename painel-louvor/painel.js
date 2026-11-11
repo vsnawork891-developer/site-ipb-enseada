@@ -563,12 +563,15 @@ function fillMonthOptions(services = []) {
 async function openGroup(group) {
   selectedGroup = group;
   $('groupsSection').hidden = true; $('agendaSection').hidden = true; $('servicesSection').hidden = false; $('songsSection').hidden = true;
+  $('servicesList').hidden = false;
+  $('servicesEmptyState').hidden = true;
+  $('serviceDetail').hidden = true;
   $('serviceMonth').value = '';
   $('serviceGroupTitle').textContent = group.name;
   $('serviceGroupKicker').textContent = group.name.toLocaleUpperCase('pt-BR');
   $('newServiceButton').hidden = !canGroup('create', group);
   $('emptyNewServiceButton').hidden = !canGroup('create', group);
-  $('serviceEditorWrap').hidden = true; $('serviceDetail').hidden = true;
+  $('serviceEditorWrap').hidden = true;
   try { await loadServices(); } catch (error) { message(error.message); }
 }
 async function loadServices() {

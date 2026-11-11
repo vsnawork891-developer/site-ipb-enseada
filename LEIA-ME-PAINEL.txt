@@ -74,6 +74,7 @@ ETAPA 11 — MINHA AGENDA E VÍNCULO DE INTEGRANTES
 - A navegação “Minha agenda” lista as escalas futuras do mês em que a conta atual está vinculada e permite abrir o repertório. Cada pessoa só recebe resultados de grupos que pode visualizar.
 - Ao entrar em um grupo, a tela volta ao mês atual. Se a próxima escala do mês atual não vier na lista inicial, o painel tenta carregar novamente e recupera a escala pelo identificador, quando permitido.
 - A lista de escalas é carregada independentemente da biblioteca musical; uma falha ao consultar o catálogo não bloqueia os repertórios dos grupos.
+- Ao trocar de grupo após abrir um repertório, o painel restaura a lista de escalas antes de apresentar o novo grupo.
 - Ao abrir o detalhe do repertório, falhas de rede ou erro temporário do servidor geram uma única nova tentativa. Erros de permissão e escalas inexistentes não são repetidos.
 - Ao criar ou editar uma escala, nomes correspondentes a contas são sugeridos automaticamente. A seção “Vincular nomes às contas para Minha agenda” permite escolher ou corrigir a associação. O vínculo é opcional para convidados e nomes ainda não cadastrados.
 - A importação `.txt` tenta vincular cantores e músicos por nome normalizado e informa na prévia quantos nomes precisam de revisão. Escalas importadas podem ser editadas depois para corrigir os vínculos.
